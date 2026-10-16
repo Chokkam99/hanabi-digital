@@ -99,24 +99,17 @@ export function giveClue(
 }
 
 /**
- * Remove a card from a player's hand and draw a replacement if the deck has cards.
- * Newly drawn cards go to the left-most position.
+ * The card leaving a player's hand.
  * For "me", the card being removed must be revealed (color/number provided).
  * For other players, the card is read from their visible hand.
  */
-function removeAndDraw(
+function takeCard(
   gameState: GameState,
   playerId: string,
   position: number,
   revealedColor?: Color,
   revealedNumber?: CardNumber
-): {
-  removedCard: Card;
-  players: Player[];
-  deckCount: number;
-  drewLastCard: boolean;
-  pendingCardInput?: GameState['pendingCardInput'];
-} {
+): { player: Player; removedCard: Card } {
   const player = gameState.players.find(p => p.id === playerId);
   if (!player) {
     throw new Error('Player not found');
@@ -127,19 +120,34 @@ function removeAndDraw(
     throw new Error('Invalid card position');
   }
 
-  let removedCard: Card;
   if (player.isMe) {
     // For "me", require manual input (card is being revealed)
     if (!revealedColor || !revealedNumber) {
       throw new Error('Card color and number required for revealing');
     }
-    removedCard = { id: player.hand[position].id, color: revealedColor, number: revealedNumber };
-  } else {
-    // For other players, auto-detect the card from their visible hand
-    removedCard = { ...(player.hand as Card[])[position] };
+    return { player, removedCard: { id: player.hand[position].id, color: revealedColor, number: revealedNumber } };
   }
+  // For other players, auto-detect the card from their visible hand
+  return { player, removedCard: { ...(player.hand as Card[])[position] } };
+}
 
-  const canDraw = gameState.deckCount > 0;
+/**
+ * Take the card out of the hand and draw a replacement if the deck has cards.
+ * Newly drawn cards go to the left-most position.
+ * Nobody draws once the game is over: it ends the moment the third strike or the last 5 lands.
+ */
+function removeAndDraw(
+  gameState: GameState,
+  player: Player,
+  position: number,
+  gameOver = false
+): {
+  players: Player[];
+  deckCount: number;
+  drewLastCard: boolean;
+  pendingCardInput?: GameState['pendingCardInput'];
+} {
+  const canDraw = gameState.deckCount > 0 && !gameOver;
   let newHand: Card[] | CardPossibilities[];
   let pendingCardInput: GameState['pendingCardInput'];
 
@@ -161,12 +169,11 @@ function removeAndDraw(
   }
 
   return {
-    removedCard,
     players: gameState.players.map(p =>
-      p.id === playerId ? { ...p, hand: newHand } : p
+      p.id === player.id ? { ...p, hand: newHand } : p
     ),
-    deckCount: canDraw ? gameState.deckCount - 1 : 0,
-    drewLastCard: gameState.deckCount === 1,
+    deckCount: canDraw ? gameState.deckCount - 1 : gameState.deckCount,
+    drewLastCard: canDraw && gameState.deckCount === 1,
     pendingCardInput,
   };
 }
@@ -181,8 +188,7 @@ export function playCard(
   revealedColor?: Color,
   revealedNumber?: CardNumber
 ): GameState {
-  const { removedCard, players, deckCount, drewLastCard, pendingCardInput } =
-    removeAndDraw(gameState, playerId, position, revealedColor, revealedNumber);
+  const { player, removedCard } = takeCard(gameState, playerId, position, revealedColor, revealedNumber);
 
   const currentFireworkLevel = gameState.fireworks[removedCard.color];
   const isSuccess = currentFireworkLevel + 1 === removedCard.number;
@@ -194,6 +200,7 @@ export function playCard(
   const newStrikeTokens = isSuccess ? gameState.strikeTokens : Math.min(gameState.strikeTokens + 1, MAX_STRIKES);
   const newScore = Object.values(newFireworks).reduce((sum, value) => sum + value, 0);
   const isGameOver = !gameState.settings.focusMode && (newStrikeTokens === MAX_STRIKES || newScore === MAX_SCORE);
+  const { players, deckCount, drewLastCard, pendingCardInput } = removeAndDraw(gameState, player, position, isGameOver);
 
   return advanceFinalRound({
     ...gameState,
@@ -222,8 +229,8 @@ export function discardCard(
   revealedColor?: Color,
   revealedNumber?: CardNumber
 ): GameState {
-  const { removedCard, players, deckCount, drewLastCard, pendingCardInput } =
-    removeAndDraw(gameState, playerId, position, revealedColor, revealedNumber);
+  const { player, removedCard } = takeCard(gameState, playerId, position, revealedColor, revealedNumber);
+  const { players, deckCount, drewLastCard, pendingCardInput } = removeAndDraw(gameState, player, position);
 
   return advanceFinalRound({
     ...gameState,

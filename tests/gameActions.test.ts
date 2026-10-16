@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 import { Card, CardPossibilities, DECK_SIZE } from '@/types/game';
 import { discardCard, giveClue, playCard } from '@/utils/gameActions';
 import { computePlayerKnowledge } from '@/utils/inference';
-import { newGame, sorted } from './helpers';
+import { card, newGame, sorted } from './helpers';
 
 describe('giveClue', () => {
   test('records the hand snapshot; editing a card (same id, new color) keeps its knowledge', () => {
@@ -81,6 +81,8 @@ describe('playCard / discardCard', () => {
     assert.equal(next.strikeTokens, 3);
     assert.equal(next.isGameOver, true);
     assert.equal(next.discardPile.length, 1);
+    assert.equal(next.players[0].hand.length, 4, 'the game is over, so nothing is drawn');
+    assert.equal(next.deckCount, game.deckCount);
   });
 
   test('a perfect score (25) ends the game; playing a 5 returns a hint token', () => {
@@ -95,6 +97,43 @@ describe('playCard / discardCard', () => {
     assert.equal(next.score, 25);
     assert.equal(next.isGameOver, true);
     assert.equal(next.hintTokens, 4);
+    assert.equal(next.players[0].hand.length, 4, 'the game is over, so nothing is drawn');
+    assert.equal(next.deckCount, game.deckCount);
+  });
+
+  test("another player's game-ending play asks for no draw", () => {
+    const start = newGame(3);
+    const alice = start.players[1];
+
+    // Third strike: Alice's slot 2 holds a green 2, which can't go on an empty firework
+    const struckOut = playCard({ ...start, strikeTokens: 2 }, alice.id, 1);
+    assert.equal(struckOut.isGameOver, true);
+    assert.equal(struckOut.pendingCardInput, undefined);
+    assert.equal(struckOut.players[1].hand.length, 4);
+    assert.equal(struckOut.deckCount, start.deckCount);
+
+    // Perfect score: Alice completes the last firework
+    const aliceHand = [card('p1c0', 'white', 5), ...(alice.hand as Card[]).slice(1)];
+    const lastFive = {
+      ...start,
+      fireworks: { red: 5, yellow: 5, green: 5, blue: 5, white: 4 },
+      players: start.players.map(p => (p.id === alice.id ? { ...p, hand: aliceHand } : p)),
+    };
+    const perfect = playCard(lastFive, alice.id, 0);
+    assert.equal(perfect.score, 25);
+    assert.equal(perfect.isGameOver, true);
+    assert.equal(perfect.pendingCardInput, undefined);
+    assert.equal(perfect.deckCount, start.deckCount);
+  });
+
+  test('in focus mode the game never ends, so the play still draws', () => {
+    const start = newGame(3);
+    const game = { ...start, strikeTokens: 2, settings: { ...start.settings, focusMode: true } };
+
+    const next = playCard(game, game.players[1].id, 1);
+
+    assert.equal(next.isGameOver, false);
+    assert.deepEqual(next.pendingCardInput, { playerId: game.players[1].id, position: 0 });
   });
 });
 
