@@ -50,6 +50,30 @@ const PLUM_PETALS = Array.from({ length: 5 }, (_, i) => {
   return { cx: 12 + 5.6 * Math.cos(angle), cy: 12.4 + 5.6 * Math.sin(angle) };
 });
 
+// One kiku petal pointing up: narrow at the disc, a round tip at the rim. Sixteen of them,
+// with an even hairline between neighbours, make the scalloped edge of a kiku mon.
+const KIKU_PETAL = 'M11.61 8.25L10.53 2.8A1.5 1.5 0 1 1 13.47 2.8L12.39 8.25A3.77 3.77 0 0 0 11.61 8.25Z';
+
+// Matsu tiers: each is a flat fan of needles with a drooping underside,
+// topped by a row of round clumps so it reads as a needle cloud
+const PINE_TIERS = [
+  {
+    fan: 'M7.4 7.2A4.6 3.2 0 0 1 16.6 7.2Q12 5.86 7.4 7.2Z',
+    clumps: [[9.05, 5.57], [12, 4.83], [14.95, 5.57]],
+    r: 1.5,
+  },
+  {
+    fan: 'M4.2 13A7.8 3.8 0 0 1 19.8 13Q12 11.4 4.2 13Z',
+    clumps: [[6.07, 11.47], [10.02, 10.26], [13.98, 10.26], [17.93, 11.47]],
+    r: 1.7,
+  },
+  {
+    fan: 'M1.2 18.8A10.8 4.4 0 0 1 22.8 18.8Q12 16.95 1.2 18.8Z',
+    clumps: [[3.29, 17.24], [7.64, 15.82], [12, 15.45], [16.36, 15.82], [20.71, 17.24]],
+    r: 1.9,
+  },
+];
+
 function Crest({ color }: { color: Color }) {
   // Masks need ids unique to this instance
   const maskId = useId();
@@ -72,31 +96,28 @@ function Crest({ color }: { color: Color }) {
         </>
       );
     case 'yellow':
-      // Chrysanthemum: twelve rays around a disc
+      // Chrysanthemum (kiku mon): sixteen round-tipped petals around a disc
       return (
         <>
-          {Array.from({ length: 12 }, (_, i) => (
-            <rect
-              key={i}
-              x="11"
-              y="1.6"
-              width="2"
-              height="7"
-              rx="1"
-              transform={`rotate(${i * 30} 12 12)`}
-            />
+          {Array.from({ length: 16 }, (_, i) => (
+            <path key={i} d={KIKU_PETAL} transform={`rotate(${i * 22.5} 12 12)`} />
           ))}
-          <circle cx="12" cy="12" r="3.6" />
+          <circle cx="12" cy="12" r="3" />
         </>
       );
     case 'green':
-      // Pine: three stacked tiers on a short trunk
+      // Pine (matsu): three rounded needle-cloud tiers on a trunk
       return (
         <>
-          <path d="M12 2.5 17 8.5H7Z" />
-          <path d="M12 6.5 18.8 13.8H5.2Z" />
-          <path d="M12 10.5 20.5 19H3.5Z" />
-          <rect x="10.8" y="18.5" width="2.4" height="3.5" rx="0.6" />
+          <rect x="11" y="6.5" width="2" height="16" />
+          {PINE_TIERS.map(tier => (
+            <g key={tier.fan}>
+              <path d={tier.fan} />
+              {tier.clumps.map(([cx, cy]) => (
+                <circle key={cx} cx={cx} cy={cy} r={tier.r} />
+              ))}
+            </g>
+          ))}
         </>
       );
     case 'blue':

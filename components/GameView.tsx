@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { GameState, Color, CardNumber, ClueType, Card, CardPossibilities, COLORS, MAX_SCORE, MAX_STRIKES, GameSettings } from '@/types/game';
 import { giveClue, playCard, discardCard } from '@/utils/gameActions';
 import { getHandSize } from '@/utils/gameInit';
@@ -13,7 +13,8 @@ import NewCardModal from './NewCardModal';
 import EditCardsModal from './EditCardsModal';
 import RevealCardModal from './RevealCardModal';
 import DeductionModal from './DeductionModal';
-import SuitEmblem, { SUIT_TEXT } from './SuitEmblem';
+import { CardFace, EmptySlot } from './Card';
+import { SUIT_NAMES, SUIT_TEXT } from './SuitEmblem';
 import Sheet from './ui/Sheet';
 import SwitchRow from './ui/Switch';
 import Button from './ui/Button';
@@ -28,6 +29,9 @@ interface GameViewProps {
 }
 
 type Selection = { playerId: string; cardIds: string[] } | null;
+
+// Degrees between neighbouring cards in the final fan, centred on the middle suit
+const FAN_STEP = 8;
 
 export default function GameView({ gameState, onUpdateGame, onUndo, canUndo, onNewGame }: GameViewProps) {
   const [selection, setSelection] = useState<Selection>(null);
@@ -66,6 +70,15 @@ export default function GameView({ gameState, onUpdateGame, onUndo, canUndo, onN
       section.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [selectedHandId]);
+
+  // A perfect game bursts only when it ends at the table, never when a finished game is reloaded
+  const wasOver = useRef(gameState.isGameOver);
+  const [justEnded, setJustEnded] = useState(false);
+  useEffect(() => {
+    if (gameState.isGameOver === wasOver.current) return;
+    wasOver.current = gameState.isGameOver;
+    setJustEnded(gameState.isGameOver);
+  }, [gameState.isGameOver]);
 
   const run = (action: () => GameState, saveToHistory = true) => {
     try {
@@ -342,31 +355,47 @@ export default function GameView({ gameState, onUpdateGame, onUndo, canUndo, onN
             </>
           }
         >
-          <div className="flex flex-col items-center gap-4 py-4">
-            <div className="flex gap-3" aria-hidden="true">
-              {COLORS.map((color, i) => (
-                <span key={color} className="relative">
-                  <SuitEmblem
-                    color={color}
-                    size={30}
-                    className={`${SUIT_TEXT[color]} ${gameState.fireworks[color] === 0 ? 'opacity-25' : ''}`}
-                  />
-                  {perfect && (
-                    <span
-                      className={`absolute inset-0 rounded-full border-2 border-current ${SUIT_TEXT[color]} animate-burst`}
-                      style={{ animationDelay: `${i * 120}ms` }}
-                    />
-                  )}
-                </span>
-              ))}
-            </div>
-            <p className="text-center">
-              <span className="block text-7xl leading-none font-extrabold [font-stretch:80%]">{gameState.score}</span>
-              <span className="mt-2 block text-sm text-ink-2">points of {MAX_SCORE}</span>
+          <div className="flex flex-col items-center pb-4">
+            {/* The finished fireworks, top card of each, fanned like a hand.
+                Clipped sideways at the sheet's edges so the burst rings can't make it scroll. */}
+            <ol aria-label="Final fireworks" className="-mx-5 flex h-36 items-end justify-center self-stretch overflow-x-clip px-5">
+              {COLORS.map((color, i) => {
+                const level = gameState.fireworks[color];
+                const angle = (i - (COLORS.length - 1) / 2) * FAN_STEP;
+                return (
+                  <li
+                    key={color}
+                    className="relative -mx-2 w-16 origin-bottom sm:w-[72px]"
+                    style={{ transform: `rotate(${angle}deg) translateY(${Math.abs(angle) * 0.5}px)` }}
+                  >
+                    {level > 0 ? (
+                      <CardFace color={color} number={level as CardNumber} />
+                    ) : (
+                      <>
+                        {/* Filled so the neighbouring card doesn't show through the outline */}
+                        <EmptySlot color={color} className="bg-lacquer" />
+                        <span className="sr-only">{SUIT_NAMES[color]}: none played</span>
+                      </>
+                    )}
+                    {perfect && justEnded && (
+                      <span
+                        aria-hidden="true"
+                        className={`pointer-events-none absolute inset-0 rounded-full border-4 border-current ${SUIT_TEXT[color]} animate-burst motion-reduce:hidden`}
+                        // Hold the start frame through the stagger so no ring shows before its turn
+                        style={{ animationDelay: `${i * 120}ms`, animationFillMode: 'both' }}
+                      />
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+            <p className="mt-5 flex items-baseline gap-1.5">
+              <span className="text-[40px] leading-none font-extrabold [font-stretch:80%]">{gameState.score}</span>
+              <span className="text-sm font-medium text-ink-2">of {MAX_SCORE}</span>
             </p>
             <button
               onClick={() => onUpdateGame({ ...gameState, isGameOver: false }, false)}
-              className="text-sm font-semibold text-ink-2 underline underline-offset-4 hover:text-ink"
+              className="mt-4 text-sm font-semibold text-ink-2 underline underline-offset-4 hover:text-ink"
             >
               Review the table
             </button>

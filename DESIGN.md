@@ -265,7 +265,7 @@ These are not brand accents. They are the five suits of the physical Hanabi deck
 
 ### Hierarchy
 - **Display** (bold, 34px, width 112, tight tracking): the setup screen title only.
-- **Score** (extrabold, 40px on the fireworks rail, 72px on the game-over sheet, width 80): the running and final score.
+- **Score** (extrabold, 40px, width 80): the running score on the fireworks rail and the final score under the game-over fan.
 - **Card Numeral** (extrabold, 40% of card width on faces and 46% when a back knows its number, width 75): card indices. Option strips on backs run at 17 to 18% of card width, width 75 to 80.
 - **Key Numeral** (extrabold, 20px in the dock, 24px in the picker, width 80; black weight when selected): number keys, player-count segments and discard cells.
 - **Headline** (semibold, 18px, width 92, tight tracking): hand titles and sheet titles; 16px for the discard panel title and 20px for the deal screen title.
@@ -323,6 +323,7 @@ Solid, quick, and plainly labelled, with a drawn line icon where the action has 
 ### Cards / Containers
 - **Panel:** lacquer with a 1px rule border, 16px corners, 16px padding (the discard pile). Notices use the same lacquer with an ink-3 border and 12px corners, led by a line icon.
 - **Sheet:** lacquer, rule border, 16px top corners on phones (all corners from 640px), a title row with a close button, a scrolling body, and an optional footer row split by a rule.
+- **Game-over sheet:** the finished fireworks fanned like the setup hand (the top card of each suit, an empty firework as its dashed outline filled with lacquer), 8 degrees between cards and centred on the middle suit, with the score below in the rail's 40px style. A perfect game that finishes at the table bursts a ring from each card, staggered 120ms; reopening a finished game doesn't replay it.
 - **Action dock:** lacquer-2 with a rule border (no bottom border) and 16px top corners. A summary line of who and which slots, then the actions. Clue mode swaps in suit tiles, number keys and a full-width primary submit that states the hints left.
 
 ### Inputs / Fields
@@ -357,7 +358,7 @@ A 3:5 slab whose type and crests are sized to its own width. Four states:
 It flips face-up (420ms, rotating from -90 degrees with a slight scale) only at the moment it becomes fully known, and when a played card lands on a firework. Never on load.
 
 ### Suit Crests
-Drawn 24px SVG crests in currentColor: plum blossom (five round petals, pierced centre) for red, a twelve-ray chrysanthemum for yellow, a three-tier pine for green, three overlapping seigaiha scales (outlined) for blue, a crescent moon for white.
+Drawn 24px SVG crests in currentColor, in the manner of Japanese family crests (kamon): plum blossom (five round petals, pierced centre) for red, a kiku mon chrysanthemum (sixteen round-tipped petals around a disc) for yellow, a matsu pine (three rounded needle-cloud tiers on a trunk) for green, three overlapping seigaiha scales (outlined) for blue, a crescent moon for white. Every crest except the wave is filled, and each must stay legible from about 9px on a card back to a full card face.
 
 ### Icons
 Authored line icons on a 24px grid with 1.75 stroke and round caps and joins, drawn per need (undo, menu, close, check, eye, pencil, arrows, play, discard, clue, deck, notes, plus, burst). Heavier strokes (2.5 to 3) only where an icon stands in for a state mark (strikes, the check badge, error lines).
