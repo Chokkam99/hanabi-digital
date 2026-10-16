@@ -1,0 +1,20 @@
+{
+  // Compiles the game logic and its tests to CommonJS for node:test (see scripts/test.mjs)
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["es2022", "dom"],
+    "module": "commonjs",
+    "moduleResolution": "node10",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "rootDir": ".",
+    "outDir": ".test-build",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["types/**/*.ts", "utils/**/*.ts", "tests/**/*.ts"]
+}

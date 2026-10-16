@@ -32,8 +32,11 @@ Requires Node 20+ and [pnpm](https://pnpm.io).
 pnpm install
 pnpm dev        # http://localhost:3000
 pnpm typecheck
+pnpm test       # game-logic tests
 pnpm build
 ```
+
+`pnpm test` runs the tests in `tests/` with Node's built-in test runner, so there's no test framework to install. It compiles `types/`, `utils/` and `tests/` to CommonJS in `.test-build/` (git-ignored) using `tsconfig.test.json`, then runs the compiled files, so a type error fails the run too. `npm test` does the same if pnpm isn't available.
 
 Built with Next.js 16 (App Router), React 19, TypeScript and Tailwind CSS v4.
 
@@ -47,3 +50,4 @@ Built with Next.js 16 (App Router), React 19, TypeScript and Tailwind CSS v4.
 | `utils/gameActions.ts` | Pure state transitions: give clue, play, discard, final-round countdown |
 | `utils/inference.ts` | Card deduction: applying clues, safe-to-play/discard, auto-deductions |
 | `utils/storage.ts` | Saving and loading game state (Sets ⇄ arrays for JSON) |
+| `tests/` | Tests for the game logic in `types/` and `utils/` (`pnpm test`; runner in `scripts/test.mjs`) |
