@@ -1,33 +1,31 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Archivo } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// One sturdy grotesque for the whole app; the width axis gives condensed card numerals
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  axes: ["wdth"],
 });
 
 export const metadata: Metadata = {
   title: "Hanabi Digital",
-  description: "Create the perfect fireworks show - A digital companion for playing Hanabi",
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
-  themeColor: '#4c1d95',
-  manifest: '/manifest.json',
+  description: "A companion for playing Hanabi with a real deck: tracks every clue, what each player knows, and the table.",
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'Hanabi Digital',
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  themeColor: '#131113',
 };
 
 export default function RootLayout({
@@ -37,9 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${archivo.variable} font-sans antialiased`}>
         {children}
       </body>
     </html>

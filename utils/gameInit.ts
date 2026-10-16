@@ -1,4 +1,4 @@
-import { GameState, GameSetup, Player, CardPossibilities, Card, createInitialCardPossibilities, createInitialFireworks } from '@/types/game';
+import { GameState, GameSetup, Player, CardPossibilities, Card, createInitialCardPossibilities, createInitialFireworks, DECK_SIZE, MAX_HINT_TOKENS } from '@/types/game';
 
 /**
  * Get hand size based on number of players
@@ -43,9 +43,9 @@ export function initializeGame(setup: GameSetup): GameState {
     currentViewPlayerId: myPlayer.id, // Start by viewing my own hand
     fireworks: createInitialFireworks(),
     discardPile: [],
-    hintTokens: 8,
+    hintTokens: MAX_HINT_TOKENS,
     strikeTokens: 0,
-    deckCount: 50 - totalDealtCards, // Subtract dealt cards from 50 total
+    deckCount: DECK_SIZE - totalDealtCards,
     settings: {
       showSafeToPlay: false,
       showSafeToDiscard: false,

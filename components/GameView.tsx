@@ -1,315 +1,377 @@
 'use client';
 
-import { useState } from 'react';
-import { GameState, Player, CardPossibilities, Card } from '@/types/game';
+import { useEffect, useState } from 'react';
+import { GameState, Color, CardNumber, ClueType, Card, CardPossibilities, COLORS, MAX_SCORE, MAX_STRIKES, GameSettings } from '@/types/game';
+import { giveClue, playCard, discardCard } from '@/utils/gameActions';
+import { getHandSize } from '@/utils/gameInit';
+import TableHeader from './TableHeader';
+import FireworksRail from './FireworksRail';
 import PlayerHand from './PlayerHand';
-import TokenDisplay from './TokenDisplay';
-import FireworksDisplay from './FireworksDisplay';
+import ActionDock from './ActionDock';
 import DiscardPileDisplay from './DiscardPileDisplay';
 import NewCardModal from './NewCardModal';
 import EditCardsModal from './EditCardsModal';
+import RevealCardModal from './RevealCardModal';
+import DeductionModal from './DeductionModal';
+import SuitEmblem, { SUIT_TEXT } from './SuitEmblem';
+import Sheet from './ui/Sheet';
+import SwitchRow from './ui/Switch';
+import Button from './ui/Button';
+import Icon from './ui/Icon';
 
 interface GameViewProps {
   gameState: GameState;
   onUpdateGame: (newState: GameState, saveToHistory?: boolean) => void;
   onUndo: () => void;
   canUndo: boolean;
+  onNewGame: () => void;
 }
 
-export default function GameView({ gameState, onUpdateGame, onUndo, canUndo }: GameViewProps) {
-  const [showFireworks, setShowFireworks] = useState(false);
-  const [showDiscards, setShowDiscards] = useState(false);
-  const [showOtherPlayerKnowledge, setShowOtherPlayerKnowledge] = useState(false);
-  const [editingPlayerCards, setEditingPlayerCards] = useState(false);
+type Selection = { playerId: string; cardIds: string[] } | null;
 
-  const currentViewPlayer = gameState.players.find(
-    p => p.id === gameState.currentViewPlayerId
-  );
+export default function GameView({ gameState, onUpdateGame, onUndo, canUndo, onNewGame }: GameViewProps) {
+  const [selection, setSelection] = useState<Selection>(null);
+  const [reveal, setReveal] = useState<{ position: number; type: 'play' | 'discard' } | null>(null);
+  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
+  const [showDeductions, setShowDeductions] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [confirmingNewGame, setConfirmingNewGame] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const myPlayer = gameState.players.find(p => p.id === gameState.myPlayerId);
+  const { players, settings } = gameState;
+  const handSize = getHandSize(players.length);
 
-  const isViewingMyHand = gameState.currentViewPlayerId === gameState.myPlayerId;
+  // My hand first, then everyone else in turn order after me
+  const meIndex = players.findIndex(p => p.isMe);
+  const me = players[meIndex];
+  const others = [...players.slice(meIndex + 1), ...players.slice(0, meIndex)];
 
-  const handlePlayerSwitch = (playerId: string) => {
-    onUpdateGame({
-      ...gameState,
-      currentViewPlayerId: playerId,
-    }, false); // Don't save navigation to history
+  const selectedPlayer = selection ? players.find(p => p.id === selection.playerId) : undefined;
+  // Positions follow the cards, so a selection survives reordering
+  const selectedPositions = selectedPlayer
+    ? (selectedPlayer.hand as (Card | CardPossibilities)[])
+        .map((card, index) => (selection!.cardIds.includes(card.id) ? index : -1))
+        .filter(index => index !== -1)
+    : [];
+  const activeSelection = selectedPlayer && selectedPositions.length > 0;
+
+  // When a hand is selected, make sure the dock isn't covering it
+  const selectedHandId = selection?.playerId;
+  useEffect(() => {
+    if (!selectedHandId) return;
+    const section = document.getElementById(`hand-section-${selectedHandId}`);
+    if (!section) return;
+    const dockTop = window.innerHeight - 340;
+    if (section.getBoundingClientRect().bottom > dockTop) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedHandId]);
+
+  const run = (action: () => GameState, saveToHistory = true) => {
+    try {
+      onUpdateGame(action(), saveToHistory);
+      setSelection(null);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Something went wrong.');
+    }
   };
 
-  if (!currentViewPlayer || !myPlayer) {
-    return <div>Error: Player not found</div>;
+  const toggleCard = (playerId: string, cardId: string) => {
+    setNotice(null);
+    setSelection(prev => {
+      // Selecting in another hand starts a fresh selection
+      if (!prev || prev.playerId !== playerId) return { playerId, cardIds: [cardId] };
+      const cardIds = prev.cardIds.includes(cardId)
+        ? prev.cardIds.filter(id => id !== cardId)
+        : [...prev.cardIds, cardId];
+      return cardIds.length > 0 ? { playerId, cardIds } : null;
+    });
+  };
+
+  const selectPositions = (positions: number[]) => {
+    if (!selectedPlayer) return;
+    setSelection({ playerId: selectedPlayer.id, cardIds: positions.map(p => selectedPlayer.hand[p].id) });
+  };
+
+  const handleClue = (type: ClueType, value: Color | CardNumber) => {
+    if (!selectedPlayer) return;
+    run(() => giveClue(gameState, selectedPlayer.id, selectedPositions, type, value));
+  };
+
+  const handlePlayOrDiscard = (type: 'play' | 'discard') => {
+    if (!selectedPlayer) return;
+    const position = selectedPositions[0];
+    if (selectedPlayer.isMe) {
+      // My card has to be revealed first
+      setReveal({ position, type });
+      return;
+    }
+    run(() => (type === 'play' ? playCard : discardCard)(gameState, selectedPlayer.id, position));
+  };
+
+  const handleMove = (direction: 'left' | 'right') => {
+    if (!selectedPlayer) return;
+    const from = selectedPositions[0];
+    const to = direction === 'left' ? from - 1 : from + 1;
+    if (to < 0 || to >= selectedPlayer.hand.length) return;
+
+    const hand = [...(selectedPlayer.hand as (Card | CardPossibilities)[])];
+    [hand[from], hand[to]] = [hand[to], hand[from]];
+    const reordered = selectedPlayer.isMe
+      ? (hand as CardPossibilities[]).map((card, idx) => ({ ...card, position: idx }))
+      : (hand as Card[]);
+
+    onUpdateGame({
+      ...gameState,
+      players: players.map(p => (p.id === selectedPlayer.id ? { ...p, hand: reordered } : p)),
+    });
+  };
+
+  const updateSetting = (key: keyof GameSettings, value: boolean) => {
+    onUpdateGame({ ...gameState, settings: { ...settings, [key]: value } }, false);
+  };
+
+  const closeMenu = () => {
+    setShowMenu(false);
+    setConfirmingNewGame(false);
+  };
+
+  if (!me) {
+    return <p className="p-6 text-ink-2">This saved game is missing your hand. Start a new game from the menu.</p>;
   }
 
+  const lostToStrikes = gameState.strikeTokens === MAX_STRIKES;
+  const perfect = gameState.score === MAX_SCORE;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-900 via-purple-900 to-pink-900 flex flex-col">
-      {/* Header */}
-      <header className="bg-black/20 backdrop-blur-sm px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-        <h1 className="text-xl font-bold text-white">🎆 Hanabi</h1>
-        <div className="flex items-center gap-3">
-          {canUndo && (
-            <button
-              onClick={onUndo}
-              className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold transition-all active:scale-95"
-            >
-              ↶ Undo
-            </button>
-          )}
-          <TokenDisplay
-            hintTokens={gameState.hintTokens}
-            strikeTokens={gameState.strikeTokens}
-          />
-        </div>
-      </header>
+    <div className="min-h-dvh bg-mat">
+      <TableHeader
+        hintTokens={gameState.hintTokens}
+        strikeTokens={gameState.strikeTokens}
+        deckCount={gameState.deckCount}
+        canUndo={canUndo}
+        onUndo={() => {
+          setSelection(null);
+          onUndo();
+        }}
+        onOpenMenu={() => setShowMenu(true)}
+      />
 
-      {/* Last Round Warning */}
-      {gameState.lastRoundStarted && !gameState.isGameOver && (
-        <div className="bg-amber-500 text-black px-4 py-2 text-center font-semibold text-sm">
-          ⏰ Last Round! Deck is empty - finish remaining turns
-        </div>
-      )}
-
-      {/* Player Selector */}
-      <div className="px-4 py-3 bg-white/5">
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {gameState.players.map((player) => (
-            <button
-              key={player.id}
-              onClick={() => handlePlayerSwitch(player.id)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full font-semibold text-sm transition-all ${
-                player.id === gameState.currentViewPlayerId
-                  ? 'bg-white text-purple-900 shadow-lg'
-                  : 'bg-white/20 text-white hover:bg-white/30'
-              }`}
-            >
-              {player.isMe ? '👤 ' : ''}
-              {player.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
-        {/* View Toggle for Other Players */}
-        {!isViewingMyHand && (
-          <div className="space-y-2">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 flex items-center justify-between">
-              <span className="text-white text-sm font-medium">
-                Show what {currentViewPlayer.name} knows
+      <main className={`mx-auto max-w-xl space-y-7 px-4 pt-5 ${activeSelection ? 'pb-72' : 'pb-16'}`}>
+        {gameState.lastRoundStarted && !gameState.isGameOver && (
+          <div role="status" className="flex items-center gap-3 rounded-xl border border-ink-3 bg-lacquer px-4 py-3">
+            <Icon name="deck" size={18} className="shrink-0 text-ink" />
+            <p className="text-sm">
+              <span className="font-semibold">Final round.</span>{' '}
+              <span className="text-ink-2">
+                {gameState.finalTurnsLeft !== undefined
+                  ? `The deck is empty: ${gameState.finalTurnsLeft} ${gameState.finalTurnsLeft === 1 ? 'turn' : 'turns'} left.`
+                  : 'The deck is empty: everyone gets one more turn.'}
               </span>
-              <button
-                onClick={() => setShowOtherPlayerKnowledge(!showOtherPlayerKnowledge)}
-                className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                  showOtherPlayerKnowledge
-                    ? 'bg-green-500 text-white'
-                    : 'bg-white/20 text-white'
-                }`}
-              >
-                {showOtherPlayerKnowledge ? 'ON' : 'OFF'}
-              </button>
-            </div>
+            </p>
+          </div>
+        )}
 
-            <button
-              onClick={() => setEditingPlayerCards(true)}
-              className="w-full bg-white/10 backdrop-blur-sm rounded-xl p-3 text-white text-sm font-medium hover:bg-white/15 transition-all active:scale-98"
-            >
-              ✏️ Edit {currentViewPlayer.name}'s Cards
+        {notice && (
+          <div role="alert" className="flex items-start gap-3 rounded-xl border border-ink-3 bg-lacquer px-4 py-3 text-sm">
+            <p className="flex-1">{notice}</p>
+            <button onClick={() => setNotice(null)} aria-label="Dismiss" className="text-ink-2 hover:text-ink">
+              <Icon name="close" size={16} />
             </button>
           </div>
         )}
 
-        {/* Player Hand */}
+        <FireworksRail fireworks={gameState.fireworks} score={gameState.score} />
+
         <PlayerHand
-          player={currentViewPlayer}
-          isMyHand={isViewingMyHand}
-          showKnowledge={isViewingMyHand || showOtherPlayerKnowledge}
+          player={me}
           gameState={gameState}
-          onUpdateGame={onUpdateGame}
+          handSize={handSize}
+          selectedCardIds={selection?.playerId === me.id ? selection.cardIds : []}
+          onToggleCard={cardId => toggleCard(me.id, cardId)}
+          onOpenDeductions={() => setShowDeductions(true)}
         />
 
-        {/* Fireworks Section */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl overflow-hidden">
-          <button
-            onClick={() => setShowFireworks(!showFireworks)}
-            className="w-full px-4 py-3 flex items-center justify-between text-white font-semibold hover:bg-white/5 transition-colors"
-          >
-            <span>🎆 Fireworks ({gameState.score}/25)</span>
-            <span className="text-xl">{showFireworks ? '▼' : '▶'}</span>
-          </button>
-          {showFireworks && (
-            <div className="px-4 pb-4">
-              <FireworksDisplay fireworks={gameState.fireworks} />
-            </div>
-          )}
-        </div>
+        {others.map(player => (
+          <PlayerHand
+            key={player.id}
+            player={player}
+            gameState={gameState}
+            handSize={handSize}
+            selectedCardIds={selection?.playerId === player.id ? selection.cardIds : []}
+            onToggleCard={cardId => toggleCard(player.id, cardId)}
+            onEditCards={() => setEditingPlayerId(player.id)}
+          />
+        ))}
 
-        {/* Discard Pile Section */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl overflow-hidden">
-          <button
-            onClick={() => setShowDiscards(!showDiscards)}
-            className="w-full px-4 py-3 flex items-center justify-between text-white font-semibold hover:bg-white/5 transition-colors"
-          >
-            <span>🗑️ Discards ({gameState.discardPile.length})</span>
-            <span className="text-xl">{showDiscards ? '▼' : '▶'}</span>
-          </button>
-          {showDiscards && (
-            <div className="px-4 pb-4">
-              <DiscardPileDisplay discardPile={gameState.discardPile} />
-            </div>
-          )}
-        </div>
+        <DiscardPileDisplay discardPile={gameState.discardPile} />
 
-        {/* Settings Toggle */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 space-y-3">
-          <h3 className="text-white font-semibold text-sm">Settings</h3>
-          <div className="space-y-2">
-            <label className="flex items-center justify-between">
-              <div>
-                <div className="text-white text-sm font-medium">Focus Mode</div>
-                <div className="text-white/60 text-xs">Don't enforce game rules (tokens/strikes)</div>
-              </div>
-              <input
-                type="checkbox"
-                checked={gameState.settings.focusMode}
-                onChange={(e) => {
-                  onUpdateGame({
-                    ...gameState,
-                    settings: {
-                      ...gameState.settings,
-                      focusMode: e.target.checked,
-                    },
-                  }, false);
-                }}
-                className="w-5 h-5 rounded accent-purple-500"
-              />
-            </label>
-            <label className="flex items-center justify-between">
-              <span className="text-white text-sm">Show safe to play</span>
-              <input
-                type="checkbox"
-                checked={gameState.settings.showSafeToPlay}
-                onChange={(e) =>
-                  onUpdateGame({
-                    ...gameState,
-                    settings: {
-                      ...gameState.settings,
-                      showSafeToPlay: e.target.checked,
-                    },
-                  }, false) // Don't save settings changes to history
-                }
-                className="w-5 h-5 rounded accent-green-500"
-              />
-            </label>
-            <label className="flex items-center justify-between">
-              <span className="text-white text-sm">Show safe to discard</span>
-              <input
-                type="checkbox"
-                checked={gameState.settings.showSafeToDiscard}
-                onChange={(e) =>
-                  onUpdateGame({
-                    ...gameState,
-                    settings: {
-                      ...gameState.settings,
-                      showSafeToDiscard: e.target.checked,
-                    },
-                  }, false) // Don't save settings changes to history
-                }
-                className="w-5 h-5 rounded accent-yellow-500"
-              />
-            </label>
-          </div>
-        </div>
-      </div>
+        {!activeSelection && (
+          <p className="text-center text-[13px] text-ink-3">
+            Tap cards to give or record a clue, play, discard or move them.
+          </p>
+        )}
+      </main>
 
+      {activeSelection && selectedPlayer && (
+        <ActionDock
+          // A fresh dock per player so a half-picked clue never carries over
+          key={selectedPlayer.id}
+          player={selectedPlayer}
+          selectedPositions={selectedPositions}
+          hintTokens={gameState.hintTokens}
+          focusMode={settings.focusMode}
+          onClear={() => setSelection(null)}
+          onSelectPositions={selectPositions}
+          onGiveClue={handleClue}
+          onPlay={() => handlePlayOrDiscard('play')}
+          onDiscard={() => handlePlayOrDiscard('discard')}
+          onMove={handleMove}
+        />
+      )}
 
-      {/* New Card Modal - appears automatically when needed (skip in Focus Mode) */}
-      {gameState.pendingCardInput && !gameState.settings.focusMode && (
+      {reveal && (
+        <RevealCardModal
+          playerId={me.id}
+          position={reveal.position}
+          actionType={reveal.type}
+          gameState={gameState}
+          onClose={() => setReveal(null)}
+          onUpdateGame={state => {
+            onUpdateGame(state);
+            setSelection(null);
+          }}
+        />
+      )}
+
+      {/* A drawn card for another player (skipped in Focus Mode) */}
+      {gameState.pendingCardInput && !settings.focusMode && (
         <NewCardModal
           gameState={gameState}
-          onClose={() => {}}
           onUpdateGame={onUpdateGame}
+          onUndo={canUndo ? onUndo : undefined}
+          onSkip={() => onUpdateGame({ ...gameState, pendingCardInput: undefined }, false)}
         />
       )}
 
-      {/* Edit Cards Modal */}
-      {editingPlayerCards && (
+      {editingPlayerId && (
         <EditCardsModal
           gameState={gameState}
-          playerId={gameState.currentViewPlayerId}
-          onClose={() => setEditingPlayerCards(false)}
+          playerId={editingPlayerId}
+          onClose={() => setEditingPlayerId(null)}
           onUpdateGame={onUpdateGame}
         />
       )}
 
-      {/* Game Over Modal */}
+      {showDeductions && (
+        <DeductionModal gameState={gameState} onClose={() => setShowDeductions(false)} onUpdateGame={onUpdateGame} />
+      )}
+
+      {showMenu && (
+        <Sheet title="Game" onClose={closeMenu}>
+          <div className="divide-y divide-rule">
+            <SwitchRow
+              label="Highlight safe plays"
+              description="Marks cards you know will play."
+              checked={settings.showSafeToPlay}
+              onChange={v => updateSetting('showSafeToPlay', v)}
+            />
+            <SwitchRow
+              label="Highlight safe discards"
+              description="Marks cards that can never be played: already on the fireworks, or every lower copy is gone."
+              checked={settings.showSafeToDiscard}
+              onChange={v => updateSetting('showSafeToDiscard', v)}
+            />
+            <SwitchRow
+              label="Apply deductions to my cards"
+              description="Uses the options you've ruled out under Deductions."
+              checked={settings.showDeductions}
+              onChange={v => updateSetting('showDeductions', v)}
+            />
+            <SwitchRow
+              label="Focus mode"
+              description="Track only your own hand: no token limits, strikes or end-of-game, and no prompts to enter cards."
+              checked={settings.focusMode}
+              onChange={v => updateSetting('focusMode', v)}
+            />
+          </div>
+
+          <div className="mt-4 border-t border-rule pt-4">
+            {confirmingNewGame ? (
+              <div className="space-y-3">
+                <p className="text-sm text-ink-2">End this game and start over? This can&apos;t be undone.</p>
+                <div className="flex gap-2">
+                  <Button className="flex-1" onClick={() => setConfirmingNewGame(false)}>
+                    Keep playing
+                  </Button>
+                  <Button variant="danger" className="flex-1" onClick={onNewGame}>
+                    End game
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button variant="danger" className="w-full" onClick={() => setConfirmingNewGame(true)}>
+                New game
+              </Button>
+            )}
+          </div>
+        </Sheet>
+      )}
+
       {gameState.isGameOver && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-2xl p-8 max-w-md w-full shadow-2xl relative">
-            {/* Close button */}
+        <Sheet
+          title={lostToStrikes ? 'The fuse burned out' : perfect ? 'A perfect show' : 'The show is over'}
+          description={
+            lostToStrikes
+              ? 'Three strikes end the game.'
+              : perfect
+              ? 'Every firework, all the way to 5.'
+              : 'The deck ran out and everyone took their last turn.'
+          }
+          onClose={() => onUpdateGame({ ...gameState, isGameOver: false }, false)}
+          footer={
+            <>
+              {canUndo && (
+                <Button icon="undo" className="flex-1" onClick={onUndo}>
+                  Undo
+                </Button>
+              )}
+              <Button variant="primary" className="flex-1" onClick={onNewGame}>
+                New game
+              </Button>
+            </>
+          }
+        >
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="flex gap-3" aria-hidden="true">
+              {COLORS.map((color, i) => (
+                <span key={color} className="relative">
+                  <SuitEmblem
+                    color={color}
+                    size={30}
+                    className={`${SUIT_TEXT[color]} ${gameState.fireworks[color] === 0 ? 'opacity-25' : ''}`}
+                  />
+                  {perfect && (
+                    <span
+                      className={`absolute inset-0 rounded-full border-2 border-current ${SUIT_TEXT[color]} animate-burst`}
+                      style={{ animationDelay: `${i * 120}ms` }}
+                    />
+                  )}
+                </span>
+              ))}
+            </div>
+            <p className="text-center">
+              <span className="block text-7xl leading-none font-extrabold [font-stretch:80%]">{gameState.score}</span>
+              <span className="mt-2 block text-sm text-ink-2">points of {MAX_SCORE}</span>
+            </p>
             <button
               onClick={() => onUpdateGame({ ...gameState, isGameOver: false }, false)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center font-bold transition-all"
+              className="text-sm font-semibold text-ink-2 underline underline-offset-4 hover:text-ink"
             >
-              ×
+              Review the table
             </button>
-
-            <div className="text-center space-y-4">
-              {/* Game Over Icon */}
-              <div className="text-6xl mb-2">
-                {gameState.strikeTokens === 3 ? '💥' : gameState.score === 25 ? '🎉' : '🎆'}
-              </div>
-
-              {/* Title */}
-              <h2 className="text-3xl font-bold text-white">
-                {gameState.strikeTokens === 3 ? 'Game Over!' : gameState.score === 25 ? 'Perfect Score!' : 'Game Complete!'}
-              </h2>
-
-              {/* Reason */}
-              <p className="text-white/80 text-lg">
-                {gameState.strikeTokens === 3
-                  ? 'Three strikes - the fireworks show has ended early'
-                  : gameState.score === 25
-                  ? 'You achieved a legendary perfect score of 25!'
-                  : 'The deck is empty and all turns are complete'}
-              </p>
-
-              {/* Final Score */}
-              <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm">
-                <div className="text-white/70 text-sm mb-1">Final Score</div>
-                <div className="text-5xl font-bold text-white">{gameState.score}/25</div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-2">
-                {canUndo && (
-                  <button
-                    onClick={() => {
-                      onUndo();
-                    }}
-                    className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition-all shadow-lg"
-                  >
-                    ↶ Undo Last Action
-                  </button>
-                )}
-
-                <button
-                  onClick={() => onUpdateGame({ ...gameState, isGameOver: false }, false)}
-                  className="w-full py-3 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-xl transition-all"
-                >
-                  Review Game
-                </button>
-
-                <button
-                  onClick={() => window.location.reload()}
-                  className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-xl transition-all shadow-lg"
-                >
-                  Start New Game
-                </button>
-              </div>
-            </div>
           </div>
-        </div>
+        </Sheet>
       )}
     </div>
   );

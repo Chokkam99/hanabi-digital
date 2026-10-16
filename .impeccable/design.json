@@ -1,0 +1,505 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-16T06:44:53+00:00",
+  "title": "Design System: Hanabi Digital",
+  "extensions": {
+    "colorMeta": {
+      "mat": {
+        "role": "neutral",
+        "displayName": "Sumi Mat",
+        "canonical": "oklch(18.1% 0.005 325.8)",
+        "tonalRamp": [
+          "#0c0a0c",
+          "#252325",
+          "#413f41",
+          "#5f5d5f",
+          "#7f7c7f",
+          "#a09da0",
+          "#c6c3c6",
+          "#f0edf0"
+        ]
+      },
+      "lacquer": {
+        "role": "neutral",
+        "displayName": "Lacquer",
+        "canonical": "oklch(21.8% 0.006 337.8)",
+        "tonalRamp": [
+          "#0d0a0c",
+          "#262325",
+          "#423e41",
+          "#605c5f",
+          "#807c7e",
+          "#a19da0",
+          "#c7c3c5",
+          "#f1edf0"
+        ]
+      },
+      "lacquer-2": {
+        "role": "neutral",
+        "displayName": "Lacquer Two",
+        "canonical": "oklch(25.8% 0.008 334.4)",
+        "tonalRamp": [
+          "#0d0a0d",
+          "#272326",
+          "#433e41",
+          "#615c5f",
+          "#807b7f",
+          "#a29da0",
+          "#c8c2c6",
+          "#f2ecf1"
+        ]
+      },
+      "lacquer-3": {
+        "role": "neutral",
+        "displayName": "Lacquer Three",
+        "canonical": "oklch(30.4% 0.009 340.9)",
+        "tonalRamp": [
+          "#0e0a0c",
+          "#272225",
+          "#433e41",
+          "#615c5f",
+          "#817b7f",
+          "#a29ca0",
+          "#c8c2c6",
+          "#f3ecf0"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "canonical": "oklch(33.6% 0.010 345.9)",
+        "tonalRamp": [
+          "#0e0a0c",
+          "#282225",
+          "#443e41",
+          "#625b5f",
+          "#827b7e",
+          "#a39ca0",
+          "#c9c2c5",
+          "#f4ecf0"
+        ]
+      },
+      "keyline": {
+        "role": "neutral",
+        "displayName": "Keyline",
+        "canonical": "oklch(14.6% 0.003 325.7)",
+        "tonalRamp": [
+          "#0c0b0c",
+          "#252425",
+          "#403f40",
+          "#5e5d5e",
+          "#7e7d7e",
+          "#9f9e9f",
+          "#c5c3c5",
+          "#efeeef"
+        ]
+      },
+      "card-back": {
+        "role": "neutral",
+        "displayName": "Card Back",
+        "canonical": "oklch(24.0% 0.007 345.9)",
+        "tonalRamp": [
+          "#0d0a0c",
+          "#272325",
+          "#433e40",
+          "#615c5e",
+          "#817c7e",
+          "#a29d9f",
+          "#c8c2c5",
+          "#f2edef"
+        ],
+        "note": "Hard-coded literal in components/Card.tsx, not an @theme variable."
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Gofun White",
+        "canonical": "oklch(94.6% 0.007 88.6)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#252420",
+          "#41403c",
+          "#5f5d59",
+          "#7f7d79",
+          "#a09e9a",
+          "#c6c4bf",
+          "#f0eee9"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink Two",
+        "canonical": "oklch(76.5% 0.009 44.9)",
+        "tonalRamp": [
+          "#0f0a08",
+          "#282320",
+          "#443e3c",
+          "#625c59",
+          "#827c79",
+          "#a49d9a",
+          "#c9c2bf",
+          "#f4edea"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink Three",
+        "canonical": "oklch(59.5% 0.011 2.2)",
+        "tonalRamp": [
+          "#0f090b",
+          "#292223",
+          "#453d3f",
+          "#645b5d",
+          "#847b7d",
+          "#a59c9e",
+          "#cbc1c3",
+          "#f6ebee"
+        ]
+      },
+      "suit-red": {
+        "role": "secondary",
+        "displayName": "Beni Red",
+        "canonical": "oklch(59.7% 0.209 28.6)",
+        "tonalRamp": [
+          "#3a0000",
+          "#620000",
+          "#8b0000",
+          "#b60000",
+          "#de3229",
+          "#ff5b4c",
+          "#ff8a77",
+          "#ffbaa6"
+        ]
+      },
+      "suit-yellow": {
+        "role": "secondary",
+        "displayName": "Yamabuki Yellow",
+        "canonical": "oklch(84.7% 0.169 90.9)",
+        "tonalRamp": [
+          "#230000",
+          "#411600",
+          "#613500",
+          "#815500",
+          "#a37600",
+          "#c69800",
+          "#edbe00",
+          "#ffe951"
+        ]
+      },
+      "suit-green": {
+        "role": "secondary",
+        "displayName": "Matsuba Green",
+        "canonical": "oklch(60.6% 0.156 147.2)",
+        "tonalRamp": [
+          "#001700",
+          "#003400",
+          "#005300",
+          "#00731f",
+          "#279541",
+          "#50b862",
+          "#78df87",
+          "#a3ffb0"
+        ]
+      },
+      "suit-blue": {
+        "role": "secondary",
+        "displayName": "Ai Blue",
+        "canonical": "oklch(53.8% 0.153 254.2)",
+        "tonalRamp": [
+          "#000049",
+          "#00196a",
+          "#003b8d",
+          "#015cb1",
+          "#317ed5",
+          "#55a1fb",
+          "#7bc7ff",
+          "#a4f3ff"
+        ]
+      },
+      "suit-white": {
+        "role": "secondary",
+        "displayName": "Gofun Card White",
+        "canonical": "oklch(96.9% 0.004 106.5)",
+        "tonalRamp": [
+          "#0b0b09",
+          "#242422",
+          "#40403d",
+          "#5e5e5b",
+          "#7d7d7b",
+          "#9e9e9c",
+          "#c4c4c1",
+          "#efefec"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Setup screen title only."
+      },
+      "score": {
+        "displayName": "Score",
+        "purpose": "Running score on the fireworks rail (40px) and final score on the game-over sheet (72px)."
+      },
+      "card-numeral": {
+        "displayName": "Card Numeral",
+        "purpose": "Card indices, sized to the card width."
+      },
+      "key-numeral": {
+        "displayName": "Key Numeral",
+        "purpose": "Number keys, player-count segments, discard cells."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Hand titles and sheet titles."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "\"Hanabi\" in the table header."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Notices, dock summaries, descriptions."
+      },
+      "body-small": {
+        "displayName": "Body Small",
+        "purpose": "Clue chips, instructional lines, switch descriptions."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Slot numbers under cards and small helper lines."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-stock",
+        "value": "0 0 0 1px rgba(255,255,255,0.16), inset 0 1px 0 rgba(255,255,255,0.22), 0 3px 8px rgba(0,0,0,0.55)",
+        "purpose": "Every card face and back: pale stock rim, top highlight, soft drop. Cards only."
+      },
+      {
+        "name": "sheet-lift",
+        "value": "0 -12px 40px rgba(0,0,0,0.5)",
+        "purpose": "Bottom sheets and dialogs, over a rgba(0,0,0,0.65) scrim."
+      },
+      {
+        "name": "dock-lift",
+        "value": "0 -10px 30px rgba(0,0,0,0.5)",
+        "purpose": "Action dock and deal-screen confirm bar."
+      },
+      {
+        "name": "selection-ring",
+        "value": "0 0 0 2px <surface>, 0 0 0 4px #efede8",
+        "purpose": "2px gofun ring offset 2px from the surface behind (3px from the mat for hand cards). The only selection device on suit tiles, number keys and cards."
+      },
+      {
+        "name": "focus-outline",
+        "value": "outline: 2px solid #efede8; outline-offset: 2px",
+        "purpose": "Global keyboard focus."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Easing for every keyframe animation."
+      },
+      {
+        "name": "flip-in",
+        "value": "420ms ease-out-expo; perspective(600px) rotateY(-90deg) scale(0.96) to rotateY(0) scale(1)",
+        "purpose": "A card becoming fully known, or a played card landing on a firework. Never on load."
+      },
+      {
+        "name": "burst",
+        "value": "900ms ease-out-expo forwards; scale(0.4) opacity 0.9 to scale(2.4) opacity 0",
+        "purpose": "A ring in the suit ink when a firework reaches 5; staggered 120ms per suit across the crests on a perfect game."
+      },
+      {
+        "name": "sheet-in",
+        "value": "260ms ease-out-expo; translateY(24px) opacity 0 to rest",
+        "purpose": "Sheets and dialogs entering."
+      },
+      {
+        "name": "dock-in",
+        "value": "220ms ease-out-expo; translateY(16px) opacity 0 to rest",
+        "purpose": "Action dock appearing on selection."
+      },
+      {
+        "name": "fade-in",
+        "value": "200ms ease-out",
+        "purpose": "Sheet scrim."
+      },
+      {
+        "name": "press",
+        "value": "scale(0.97) over 150ms (0.95 on suit tiles and keys)",
+        "purpose": "Tactile press on buttons, cards and keys."
+      },
+      {
+        "name": "card-lift",
+        "value": "translateY(-8px) over 200ms ease-out",
+        "purpose": "A selected card rises from its row."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation and transition durations forced to 1ms, one iteration",
+        "purpose": "prefers-reduced-motion collapses all motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px",
+        "purpose": "Sheets become centered panels; card gaps widen to 12px."
+      },
+      {
+        "name": "column",
+        "value": "576px",
+        "purpose": "Max width of the table column, header, and dock."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Gofun fill; the one primary action on a screen or dock state.",
+      "html": "<button class=\"ds-btn ds-btn-primary\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4.5 5.5h15v10h-8l-4.5 3.5v-3.5h-2.5Z\"/><path d=\"M8.5 10.5h7\"/></svg>Clue</button>",
+      "css": ".ds-btn { font-family: var(--font-archivo, Archivo), ui-sans-serif, system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 12px; font-size: 14px; font-weight: 600; border: 1px solid transparent; cursor: pointer; transition: background-color 150ms, color 150ms, transform 150ms; } .ds-btn:active { transform: scale(0.97); } .ds-btn:focus-visible { outline: 2px solid var(--color-ink, #efede8); outline-offset: 2px; } .ds-btn-primary { background: var(--color-ink, #efede8); color: var(--color-mat, #131113); } .ds-btn-primary:hover { background: #ffffff; } .ds-btn-primary:disabled { background: var(--color-lacquer-3, #322d30); color: var(--color-ink-3, #857c7e); cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Lacquer button for Play, Discard, Undo and other peer actions.",
+      "html": "<button class=\"ds-btn ds-btn-secondary\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7.5 5.5v13l11-6.5Z\"/></svg>Play</button>",
+      "css": ".ds-btn { font-family: var(--font-archivo, Archivo), ui-sans-serif, system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 12px; font-size: 14px; font-weight: 600; border: 1px solid transparent; cursor: pointer; transition: background-color 150ms, color 150ms, transform 150ms; } .ds-btn:active { transform: scale(0.97); } .ds-btn:focus-visible { outline: 2px solid var(--color-ink, #efede8); outline-offset: 2px; } .ds-btn-secondary { background: var(--color-lacquer-2, #262225); color: var(--color-ink, #efede8); border-color: var(--color-rule, #3b3538); } .ds-btn-secondary:hover { background: var(--color-lacquer-3, #322d30); } .ds-btn-secondary:disabled { color: var(--color-ink-3, #857c7e); }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destructive action told by outline and wording, never by red; inverts to ink on hover.",
+      "html": "<button class=\"ds-btn ds-btn-danger\">End game</button>",
+      "css": ".ds-btn { font-family: var(--font-archivo, Archivo), ui-sans-serif, system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 12px; font-size: 14px; font-weight: 600; border: 1px solid transparent; cursor: pointer; transition: background-color 150ms, color 150ms, transform 150ms; } .ds-btn:active { transform: scale(0.97); } .ds-btn:focus-visible { outline: 2px solid var(--color-ink, #efede8); outline-offset: 2px; } .ds-btn-danger { background: transparent; color: var(--color-ink, #efede8); border-color: var(--color-ink-3, #857c7e); } .ds-btn-danger:hover { background: var(--color-ink, #efede8); color: var(--color-mat, #131113); }"
+    },
+    {
+      "name": "Table Header",
+      "kind": "nav",
+      "refersTo": "icon-button",
+      "description": "Sticky lacquer header: wordmark, hint pips, strikes, deck count, undo and menu.",
+      "html": "<header class=\"ds-header\"><span class=\"ds-mark\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 2.5v4\"/><path d=\"M12 17.5v4\"/><path d=\"M2.5 12h4\"/><path d=\"M17.5 12h4\"/><path d=\"m5.3 5.3 2.8 2.8\"/><path d=\"m15.9 15.9 2.8 2.8\"/><path d=\"m5.3 18.7 2.8-2.8\"/><path d=\"m15.9 8.1 2.8-2.8\"/><circle cx=\"12\" cy=\"12\" r=\"1.6\" fill=\"currentColor\"/></svg><b>Hanabi</b></span><span class=\"ds-pips\"><i class=\"on\"></i><i class=\"on\"></i><i class=\"on\"></i><i class=\"on\"></i><i class=\"on\"></i><i></i><i></i><i></i></span><b class=\"ds-count\">5</b><svg class=\"ds-strike\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M6 6l12 12\"/><path d=\"M18 6 6 18\"/></svg><i class=\"ds-ring\"></i><i class=\"ds-ring\"></i><b class=\"ds-count\">21</b><button class=\"ds-iconbtn\" aria-label=\"Undo\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 14 4 9l5-5\"/><path d=\"M4 9h10.5a5.5 5.5 0 0 1 0 11H11\"/></svg></button><button class=\"ds-iconbtn\" aria-label=\"Menu\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 7h16\"/><path d=\"M4 12h16\"/><path d=\"M4 17h16\"/></svg></button></header>",
+      "css": ".ds-header { font-family: var(--font-archivo, Archivo), ui-sans-serif, system-ui, sans-serif; display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 12px; background: color-mix(in srgb, var(--color-lacquer, #1c191b) 95%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--color-rule, #3b3538); color: var(--color-ink, #efede8); font-variant-numeric: tabular-nums; } .ds-mark { display: flex; align-items: center; gap: 6px; margin-right: auto; } .ds-mark b { font-size: 15px; font-weight: 600; letter-spacing: -0.025em; font-stretch: 108%; } .ds-pips { display: flex; gap: 2px; } .ds-pips i { width: 6px; height: 6px; border-radius: 9999px; box-sizing: border-box; border: 1px solid color-mix(in srgb, var(--color-ink-3, #857c7e) 70%, transparent); } .ds-pips i.on { background: var(--color-ink, #efede8); border-color: var(--color-ink, #efede8); } .ds-count { font-size: 14px; font-weight: 600; } .ds-strike { color: var(--color-ink, #efede8); } .ds-ring { width: 8px; height: 8px; border-radius: 9999px; border: 1px solid color-mix(in srgb, var(--color-ink-3, #857c7e) 70%, transparent); } .ds-iconbtn { display: flex; width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 9999px; border: 0; background: transparent; color: var(--color-ink-2, #b8b1ae); cursor: pointer; transition: background-color 150ms, color 150ms; } .ds-iconbtn:hover { background: var(--color-lacquer-2, #262225); color: var(--color-ink, #efede8); } .ds-iconbtn:focus-visible { outline: 2px solid var(--color-ink, #efede8); outline-offset: 2px; }"
+    },
+    {
+      "name": "Developing Card",
+      "kind": "card",
+      "refersTo": "card-back",
+      "description": "Signature: a card printed as a hanafuda slab, shown as a back with struck options, a number-known back, a color-known flood, and a face.",
+      "html": "<div class=\"ds-row\"><div class=\"ds-slab ds-back\"><div class=\"ds-frame1\"></div><div class=\"ds-frame2\"></div><div class=\"ds-grid\"><span class=\"ds-c s-red x\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><mask id=\"dsplum\"><rect width=\"24\" height=\"24\" fill=\"white\"/><circle cx=\"12\" cy=\"12.4\" r=\"2.2\" fill=\"black\"/></mask><g mask=\"url(#dsplum)\"><circle cx=\"12\" cy=\"6.8\" r=\"4.4\"/><circle cx=\"17.33\" cy=\"10.67\" r=\"4.4\"/><circle cx=\"15.29\" cy=\"16.93\" r=\"4.4\"/><circle cx=\"8.71\" cy=\"16.93\" r=\"4.4\"/><circle cx=\"6.67\" cy=\"10.67\" r=\"4.4\"/><circle cx=\"12\" cy=\"12.4\" r=\"4\"/></g></svg></span><span class=\"ds-n\">1</span><span class=\"ds-c s-yel\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(0 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(30 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(60 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(90 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(120 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(150 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(180 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(210 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(240 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(270 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(300 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(330 12 12)\"/><circle cx=\"12\" cy=\"12\" r=\"3.6\"/></svg></span><span class=\"ds-n x\">2</span><span class=\"ds-c s-grn\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 2.5 17 8.5H7Z\"/><path d=\"M12 6.5 18.8 13.8H5.2Z\"/><path d=\"M12 10.5 20.5 19H3.5Z\"/><rect x=\"10.8\" y=\"18.5\" width=\"2.4\" height=\"3.5\" rx=\"0.6\"/></svg></span><span class=\"ds-n\">3</span><span class=\"ds-c s-blu x\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><mask id=\"dswave\"><rect width=\"24\" height=\"24\" fill=\"white\"/><circle cx=\"6\" cy=\"18\" r=\"7.2\" fill=\"black\"/><circle cx=\"18\" cy=\"18\" r=\"7.2\" fill=\"black\"/></mask><g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><g mask=\"url(#dswave)\"><path d=\"M5.4 12a6.6 6.6 0 0 1 13.2 0\"/><path d=\"M8.6 12a3.4 3.4 0 0 1 6.8 0\"/></g><path d=\"M0.4 18a5.6 5.6 0 0 1 11.2 0\"/><path d=\"M3.3 18a2.7 2.7 0 0 1 5.4 0\"/><path d=\"M12.4 18a5.6 5.6 0 0 1 11.2 0\"/><path d=\"M15.3 18a2.7 2.7 0 0 1 5.4 0\"/></g></svg></span><span class=\"ds-n\">4</span><span class=\"ds-c s-wht\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><mask id=\"dsmoon\"><rect width=\"24\" height=\"24\" fill=\"white\"/><circle cx=\"16.2\" cy=\"9\" r=\"7.4\" fill=\"black\"/></mask><circle cx=\"12\" cy=\"12\" r=\"9\" mask=\"url(#dsmoon)\"/></svg></span><span class=\"ds-n\">5</span></div></div><div class=\"ds-slab ds-back\"><div class=\"ds-frame1\"></div><div class=\"ds-frame2\"></div><span class=\"ds-big\">5</span></div><div class=\"ds-slab ds-blue\"><span class=\"ds-crest-top\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><mask id=\"dswave\"><rect width=\"24\" height=\"24\" fill=\"white\"/><circle cx=\"6\" cy=\"18\" r=\"7.2\" fill=\"black\"/><circle cx=\"18\" cy=\"18\" r=\"7.2\" fill=\"black\"/></mask><g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><g mask=\"url(#dswave)\"><path d=\"M5.4 12a6.6 6.6 0 0 1 13.2 0\"/><path d=\"M8.6 12a3.4 3.4 0 0 1 6.8 0\"/></g><path d=\"M0.4 18a5.6 5.6 0 0 1 11.2 0\"/><path d=\"M3.3 18a2.7 2.7 0 0 1 5.4 0\"/><path d=\"M12.4 18a5.6 5.6 0 0 1 11.2 0\"/><path d=\"M15.3 18a2.7 2.7 0 0 1 5.4 0\"/></g></svg></span><div class=\"ds-strip\"><span class=\"x\">1</span><span>2</span><span class=\"x\">3</span><span>4</span><span>5</span></div></div><div class=\"ds-slab ds-face\"><span class=\"ds-idx\">3</span><span class=\"ds-crest\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><mask id=\"dsmoon\"><rect width=\"24\" height=\"24\" fill=\"white\"/><circle cx=\"16.2\" cy=\"9\" r=\"7.4\" fill=\"black\"/></mask><circle cx=\"12\" cy=\"12\" r=\"9\" mask=\"url(#dsmoon)\"/></svg></span></div></div>",
+      "css": ".ds-row { display: flex; gap: 8px; } .ds-slab { container-type: inline-size; position: relative; aspect-ratio: 3 / 5; width: 72px; overflow: hidden; border-radius: 10% / 6%; border: 1.5px solid var(--color-keyline, #0b0a0b); box-shadow: 0 0 0 1px rgba(255,255,255,0.16), inset 0 1px 0 rgba(255,255,255,0.22), 0 3px 8px rgba(0,0,0,0.55); font-family: var(--font-archivo, Archivo), ui-sans-serif, system-ui, sans-serif; transition: transform 200ms ease-out; cursor: pointer; } .ds-slab:active { transform: scale(0.97); } .ds-slab[aria-pressed='true'] { transform: translateY(-8px); box-shadow: 0 0 0 3px var(--color-mat, #131113), 0 0 0 5px var(--color-ink, #efede8); } .ds-slab:focus-visible { outline: 2px solid var(--color-ink, #efede8); outline-offset: 3px; } .ds-back { background: #221e20; color: var(--color-ink, #efede8); } .ds-frame1 { position: absolute; inset: 5%; border-radius: 8% / 5%; border: 1px solid color-mix(in srgb, var(--color-ink, #efede8) 25%, transparent); } .ds-frame2 { position: absolute; inset: 9%; border-radius: 6% / 4%; border: 1px solid color-mix(in srgb, var(--color-ink, #efede8) 10%, transparent); } .ds-grid { position: absolute; inset: 14%; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(5, 1fr); place-items: center; } .ds-c { position: relative; display: inline-flex; } .ds-c svg { width: 16cqw; height: 16cqw; } .ds-c.x { color: var(--color-ink-3, #857c7e) !important; } .ds-c.x::after { content: ''; position: absolute; top: 50%; left: -15%; right: -15%; height: 1.5px; background: currentColor; transform: rotate(-45deg); } .ds-n { font-size: 18cqw; line-height: 1; font-weight: 700; font-stretch: 80%; } .ds-n.x { color: var(--color-ink-3, #857c7e); text-decoration: line-through; text-decoration-thickness: 1.5px; } .s-red { color: var(--color-suit-red, #e1352b); } .s-yel { color: var(--color-suit-yellow, #f6c71b); } .s-grn { color: var(--color-suit-green, #2e9a46); } .s-blu { color: var(--color-suit-blue, #1f6ec4); } .s-wht { color: var(--color-suit-white, #f5f5f2); } .ds-big { position: absolute; inset: 12% 0 auto; text-align: center; font-size: 46cqw; line-height: 1; font-weight: 800; font-stretch: 75%; } .ds-blue { background: var(--color-suit-blue, #1f6ec4); color: var(--color-ink, #efede8); } .ds-crest-top { position: absolute; top: 12%; left: 50%; width: 50cqw; height: 50cqw; transform: translateX(-50%); } .ds-crest-top svg, .ds-crest svg { width: 100%; height: 100%; } .ds-strip { position: absolute; left: 8%; right: 8%; bottom: 7%; display: flex; justify-content: space-between; font-size: 17cqw; line-height: 1; font-weight: 800; font-stretch: 75%; } .ds-strip .x { opacity: 0.55; text-decoration: line-through; text-decoration-thickness: 2px; } .ds-face { background: var(--color-suit-white, #f5f5f2); color: var(--color-keyline, #0b0a0b); } .ds-idx { position: absolute; top: 4%; left: 10%; font-size: 40cqw; line-height: 1; font-weight: 800; font-stretch: 75%; } .ds-crest { position: absolute; bottom: 12%; left: 50%; width: 56cqw; height: 56cqw; transform: translateX(-50%); }"
+    },
+    {
+      "name": "Clue Picker",
+      "kind": "custom",
+      "refersTo": "suit-tile",
+      "description": "Suit tiles (fill + crest + keyline) and number keys; selection is a gofun ring and 1.05 scale, number keys keep their lacquer fill.",
+      "html": "<div class=\"ds-picker\"><div class=\"ds-tiles\"><button class=\"ds-tile t-red\" aria-label=\"Red\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><mask id=\"dsplum\"><rect width=\"24\" height=\"24\" fill=\"white\"/><circle cx=\"12\" cy=\"12.4\" r=\"2.2\" fill=\"black\"/></mask><g mask=\"url(#dsplum)\"><circle cx=\"12\" cy=\"6.8\" r=\"4.4\"/><circle cx=\"17.33\" cy=\"10.67\" r=\"4.4\"/><circle cx=\"15.29\" cy=\"16.93\" r=\"4.4\"/><circle cx=\"8.71\" cy=\"16.93\" r=\"4.4\"/><circle cx=\"6.67\" cy=\"10.67\" r=\"4.4\"/><circle cx=\"12\" cy=\"12.4\" r=\"4\"/></g></svg></button><button class=\"ds-tile t-yel sel\" aria-pressed=\"true\" aria-label=\"Yellow\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(0 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(30 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(60 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(90 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(120 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(150 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(180 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(210 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(240 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(270 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(300 12 12)\"/><rect x=\"11\" y=\"1.6\" width=\"2\" height=\"7\" rx=\"1\" transform=\"rotate(330 12 12)\"/><circle cx=\"12\" cy=\"12\" r=\"3.6\"/></svg></button><button class=\"ds-tile t-grn\" aria-label=\"Green\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 2.5 17 8.5H7Z\"/><path d=\"M12 6.5 18.8 13.8H5.2Z\"/><path d=\"M12 10.5 20.5 19H3.5Z\"/><rect x=\"10.8\" y=\"18.5\" width=\"2.4\" height=\"3.5\" rx=\"0.6\"/></svg></button><button class=\"ds-tile t-blu\" aria-label=\"Blue\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><mask id=\"dswave\"><rect width=\"24\" height=\"24\" fill=\"white\"/><circle cx=\"6\" cy=\"18\" r=\"7.2\" fill=\"black\"/><circle cx=\"18\" cy=\"18\" r=\"7.2\" fill=\"black\"/></mask><g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><g mask=\"url(#dswave)\"><path d=\"M5.4 12a6.6 6.6 0 0 1 13.2 0\"/><path d=\"M8.6 12a3.4 3.4 0 0 1 6.8 0\"/></g><path d=\"M0.4 18a5.6 5.6 0 0 1 11.2 0\"/><path d=\"M3.3 18a2.7 2.7 0 0 1 5.4 0\"/><path d=\"M12.4 18a5.6 5.6 0 0 1 11.2 0\"/><path d=\"M15.3 18a2.7 2.7 0 0 1 5.4 0\"/></g></svg></button><button class=\"ds-tile t-wht\" aria-label=\"White\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><mask id=\"dsmoon\"><rect width=\"24\" height=\"24\" fill=\"white\"/><circle cx=\"16.2\" cy=\"9\" r=\"7.4\" fill=\"black\"/></mask><circle cx=\"12\" cy=\"12\" r=\"9\" mask=\"url(#dsmoon)\"/></svg></button></div><div class=\"ds-tiles\"><button class=\"ds-key\">1</button><button class=\"ds-key\">2</button><button class=\"ds-key sel\" aria-pressed=\"true\">3</button><button class=\"ds-key\">4</button><button class=\"ds-key\">5</button></div></div>",
+      "css": ".ds-picker { font-family: var(--font-archivo, Archivo), ui-sans-serif, system-ui, sans-serif; display: grid; gap: 12px; padding: 12px; background: var(--color-lacquer-2, #262225); } .ds-tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; } .ds-tile { display: flex; height: 48px; align-items: center; justify-content: center; border-radius: 12px; border: 1.5px solid var(--color-keyline, #0b0a0b); cursor: pointer; transition: transform 150ms; } .ds-tile svg { width: 24px; height: 24px; } .t-red { background: var(--color-suit-red, #e1352b); color: var(--color-ink, #efede8); } .t-yel { background: var(--color-suit-yellow, #f6c71b); color: var(--color-keyline, #0b0a0b); } .t-grn { background: var(--color-suit-green, #2e9a46); color: var(--color-ink, #efede8); } .t-blu { background: var(--color-suit-blue, #1f6ec4); color: var(--color-ink, #efede8); } .t-wht { background: var(--color-suit-white, #f5f5f2); color: var(--color-keyline, #0b0a0b); } .ds-key { height: 48px; border-radius: 12px; border: 1px solid var(--color-rule, #3b3538); background: var(--color-lacquer-3, #322d30); color: var(--color-ink, #efede8); font-size: 20px; font-weight: 800; font-stretch: 80%; cursor: pointer; transition: transform 150ms, background-color 150ms; } .ds-tile:active, .ds-key:active { transform: scale(0.95); } .ds-tile:focus-visible, .ds-key:focus-visible { outline: 2px solid var(--color-ink, #efede8); outline-offset: 2px; } .ds-tile.sel, .ds-key.sel { box-shadow: 0 0 0 2px var(--color-lacquer-2, #262225), 0 0 0 4px var(--color-ink, #efede8); transform: scale(1.05); } .ds-key.sel { border-color: transparent; font-weight: 900; }"
+    },
+    {
+      "name": "Clue Chip",
+      "kind": "chip",
+      "refersTo": "clue-chip",
+      "description": "A received clue: crest in its suit ink or a condensed numeral, arrow, touched slots.",
+      "html": "<ul class=\"ds-chips\"><li class=\"ds-chip\"><span class=\"ds-chip-crest\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><mask id=\"dsplum\"><rect width=\"24\" height=\"24\" fill=\"white\"/><circle cx=\"12\" cy=\"12.4\" r=\"2.2\" fill=\"black\"/></mask><g mask=\"url(#dsplum)\"><circle cx=\"12\" cy=\"6.8\" r=\"4.4\"/><circle cx=\"17.33\" cy=\"10.67\" r=\"4.4\"/><circle cx=\"15.29\" cy=\"16.93\" r=\"4.4\"/><circle cx=\"8.71\" cy=\"16.93\" r=\"4.4\"/><circle cx=\"6.67\" cy=\"10.67\" r=\"4.4\"/><circle cx=\"12\" cy=\"12.4\" r=\"4\"/></g></svg></span><svg class=\"ds-arrow\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m13 6 6 6-6 6\"/></svg><span>1</span></li><li class=\"ds-chip\"><b>2</b><svg class=\"ds-arrow\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m13 6 6 6-6 6\"/></svg><span>1 &#183; 2</span></li></ul>",
+      "css": ".ds-chips { font-family: var(--font-archivo, Archivo), ui-sans-serif, system-ui, sans-serif; display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; } .ds-chip { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; border: 1px solid var(--color-rule, #3b3538); background: var(--color-lacquer, #1c191b); color: var(--color-ink-2, #b8b1ae); font-size: 13px; } .ds-chip b { color: var(--color-ink, #efede8); font-weight: 800; font-stretch: 80%; } .ds-chip-crest { display: inline-flex; width: 14px; height: 14px; color: var(--color-suit-red, #e1352b); } .ds-chip-crest svg { width: 100%; height: 100%; } .ds-arrow { color: var(--color-ink-3, #857c7e); }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "text-field",
+      "description": "Lacquer field for player names; border lifts to ink-2 on focus.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Player 1\" aria-label=\"Player 1 name\" />",
+      "css": ".ds-input { font-family: var(--font-archivo, Archivo), ui-sans-serif, system-ui, sans-serif; height: 48px; width: 240px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--color-rule, #3b3538); background: var(--color-lacquer, #1c191b); color: var(--color-ink, #efede8); font-size: 16px; caret-color: var(--color-ink, #efede8); transition: border-color 150ms; } .ds-input::placeholder { color: var(--color-ink-2, #b8b1ae); } .ds-input:focus, .ds-input:focus-visible { outline: none; border-color: var(--color-ink-2, #b8b1ae); }"
+    },
+    {
+      "name": "Switch",
+      "kind": "custom",
+      "refersTo": "switch-on",
+      "description": "Settings toggle: lacquer track off, gofun track with a mat knob on.",
+      "html": "<button class=\"ds-switch\" role=\"switch\" aria-checked=\"true\" aria-label=\"Focus mode\"><span></span></button>",
+      "css": ".ds-switch { position: relative; width: 48px; height: 28px; border-radius: 9999px; border: 1px solid var(--color-rule, #3b3538); background: var(--color-lacquer-3, #322d30); cursor: pointer; transition: background-color 200ms, border-color 200ms; } .ds-switch span { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 9999px; background: var(--color-ink-2, #b8b1ae); transition: transform 200ms ease-out; } .ds-switch[aria-checked='true'] { background: var(--color-ink, #efede8); border-color: var(--color-ink, #efede8); } .ds-switch[aria-checked='true'] span { transform: translateX(20px); background: var(--color-mat, #131113); } .ds-switch:focus-visible { outline: 2px solid var(--color-ink, #efede8); outline-offset: 2px; }"
+    },
+    {
+      "name": "Bottom Sheet",
+      "kind": "card",
+      "refersTo": "sheet",
+      "description": "Lacquer bottom sheet on phones, centered 448px panel from 640px; slides in over a 65% scrim.",
+      "html": "<div class=\"ds-sheet\" role=\"dialog\" aria-label=\"Game\"><div class=\"ds-sheet-head\"><h2>The show is over</h2><p>The deck ran out and everyone took their last turn.</p></div><div class=\"ds-sheet-foot\"><button class=\"ds-btn ds-btn-secondary\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 14 4 9l5-5\"/><path d=\"M4 9h10.5a5.5 5.5 0 0 1 0 11H11\"/></svg>Undo</button><button class=\"ds-btn ds-btn-primary\">New game</button></div></div>",
+      "css": ".ds-btn { font-family: var(--font-archivo, Archivo), ui-sans-serif, system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 12px; font-size: 14px; font-weight: 600; border: 1px solid transparent; cursor: pointer; transition: background-color 150ms, color 150ms, transform 150ms; } .ds-btn:active { transform: scale(0.97); } .ds-btn:focus-visible { outline: 2px solid var(--color-ink, #efede8); outline-offset: 2px; } .ds-btn-primary { background: var(--color-ink, #efede8); color: var(--color-mat, #131113); } .ds-btn-primary:hover { background: #ffffff; } .ds-btn-secondary { background: var(--color-lacquer-2, #262225); color: var(--color-ink, #efede8); border-color: var(--color-rule, #3b3538); } .ds-btn-secondary:hover { background: var(--color-lacquer-3, #322d30); } .ds-sheet-foot .ds-btn { flex: 1; } .ds-sheet { font-family: var(--font-archivo, Archivo), ui-sans-serif, system-ui, sans-serif; max-width: 448px; background: var(--color-lacquer, #1c191b); border: 1px solid var(--color-rule, #3b3538); border-radius: 16px 16px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,0.5); color: var(--color-ink, #efede8); animation: ds-sheet-in 260ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-sheet-head { padding: 20px 20px 12px; } .ds-sheet-head h2 { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.25; font-stretch: 92%; } .ds-sheet-head p { margin: 4px 0 0; font-size: 14px; color: var(--color-ink-2, #b8b1ae); } .ds-sheet-foot { display: flex; gap: 8px; padding: 12px 20px 16px; border-top: 1px solid var(--color-rule, #3b3538); } @keyframes ds-sheet-in { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } } @media (prefers-reduced-motion: reduce) { .ds-sheet { animation-duration: 1ms; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Hanafuda Deck on a Lacquer Table",
+    "overview": "**Creative North Star: \"The Hanafuda Deck on a Lacquer Table\"**\n\nHanabi's cards printed as a hanafuda deck: thick, flat-inked slabs with a near-black keyline, laid on a dark sumi-lacquer table. Each suit is a woodblock ink paired with a crest, so a card reads by shape as much as by color. Everything that isn't a card (header, panels, sheets, the action dock) is lacquer in quiet steps, with gofun white as the only ink for type, selection and the single primary action. The cards carry all the color; the furniture carries none.\n\nThe density is a phone at a real table, read in short glances: every hand on one scrolling column, cards sized to fill the row, big condensed numerals, and actions held back in a bottom dock until cards are selected. The signature move is the card that *develops*. An unknown card is a back printed with every remaining crest and number. A known color floods the field, a known number prints large, and the card flips face-up the moment both are known. Nothing a player learned ever vanishes: ruled-out options stay on the card, quieted and struck through.\n\nMotion is rare and earned. A card turns over when it becomes fully known or lands on a firework, a ring of light bursts when a firework completes, and sheets and the dock slide up. Nothing animates on load, and reduced motion collapses all of it.",
+    "keyCharacteristics": [
+      "Dark lacquer ground in five near-black steps, warm-tinted; gofun-white ink in three steps.",
+      "Five suit inks matched to the physical deck, each always paired with its crest.",
+      "3:5 card slabs with a 1.5px keyline, a pale stock rim and a soft drop; everything inside scales with the card.",
+      "One grotesque (Archivo) whose width axis does the hierarchy work: condensed numerals, normal UI, wide wordmark.",
+      "Drawn line icons and SVG crests only.",
+      "State expressed in ink, weight, rings, strikes and icons, never in a hue."
+    ],
+    "rules": [
+      {
+        "name": "The Suit-Only Hue Rule",
+        "body": "A hue only ever names its suit. Selection, danger, strikes, warnings and errors are expressed in gofun ink, weight, rings, strikes and icons, never in a suit color and never in a red. A suit's own ink may mark that suit's own things (its crest on a clue chip, its empty firework outline, its burst ring, a dashed and struck discard cell where every copy is gone). It never marks anything else. The former vermilion token was removed for this reason.",
+        "section": "colors"
+      },
+      {
+        "name": "The Crest-With-Color Rule",
+        "body": "A suit color never appears alone. Every suit tile, card face, chip and discard column pairs the color with its crest, so suits stay distinct for color-blind players and in bad light.",
+        "section": "colors"
+      },
+      {
+        "name": "The Achromatic Furniture Rule",
+        "body": "Lacquer surfaces stay tinted near-black (chroma under 0.01). If a non-card surface picks up a hue, it has started competing with the cards.",
+        "section": "colors"
+      },
+      {
+        "name": "The Width-Axis Rule",
+        "body": "Hierarchy comes from width and weight on one family, not from a second typeface. Numerals that identify cards are condensed (75 to 80); titles sit near normal (92); only the name of the app runs wide.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Table Rule",
+        "body": "Body numerals are tabular everywhere, so counts in the header, rail and discard pile don't jitter as they change.",
+        "section": "typography"
+      },
+      {
+        "name": "The Printed Stock Rule",
+        "body": "Only cards get the stock treatment. Panels, chips and keys stay flat, with tone and a 1px rule doing their separation.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep every suit color paired with its crest, and print gofun ink on red, green and blue fields and keyline ink on yellow and white.",
+      "**Do** express selection, danger, strikes, warnings and errors with gofun ink, weight, the 2px ring, strikes and line icons.",
+      "**Do** keep ruled-out options visible: ink-3 and struck through on lacquer, on-ink at 55% and struck through on a suit field.",
+      "**Do** derive the column count of any row that lists suits from the number of suits in play; keep number grids at five.",
+      "**Do** give every card the 1.5px keyline and the card-stock shadow, and size everything inside a card relative to the card's width.",
+      "**Do** keep a selected number key on its lacquer fill with the gofun ring.",
+      "**Do** reserve flip-in for a card becoming fully known or landing on a firework, and burst for a completed firework or a perfect game; slide sheets and the dock in; let reduced motion collapse all of it.",
+      "**Do** use ink-3 for text only on the mat; on lacquer and every raised surface, secondary text is ink-2."
+    ],
+    "donts": [
+      "**Don't** use a suit color, or any red, for UI state; a hue only ever names its suit.",
+      "**Don't** hide a ruled-out option or fade it toward invisibility.",
+      "**Don't** fill a selected number key with white beside the white suit tile.",
+      "**Don't** hard-code five suits into a layout that lists suits.",
+      "**Don't** animate anything on load, and don't add keyframe animations beyond flip-in, burst, sheet-in, dock-in and the scrim fade; other motion stays to short state transitions (press scale, card lift, switch slide).",
+      "**Don't** use emoji, icon fonts or glyph characters for icons or suits; crests and icons are drawn SVG.",
+      "**Don't** give panels, chips or keys the card-stock shadow, and don't tint lacquer furniture with a hue.",
+      "**Don't** introduce a second typeface; hierarchy comes from Archivo's width and weight."
+    ]
+  }
+}

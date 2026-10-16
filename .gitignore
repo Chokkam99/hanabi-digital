@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# design tooling scratch (review captures, caches); briefs and design.json stay tracked
+/.impeccable/review/
+/.impeccable/questions/
+/.impeccable/hook.cache.json

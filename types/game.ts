@@ -6,6 +6,18 @@ export type CardNumber = 1 | 2 | 3 | 4 | 5;
 export const COLORS: Color[] = ['red', 'yellow', 'green', 'blue', 'white'];
 export const NUMBERS: CardNumber[] = [1, 2, 3, 4, 5];
 
+export const MAX_HINT_TOKENS = 8;
+export const MAX_STRIKES = 3;
+export const MAX_SCORE = 25;
+export const DECK_SIZE = 50;
+
+/**
+ * Copies of each card in the deck: three 1s, two each of 2-4, one 5
+ */
+export function getCopiesPerCard(number: CardNumber): number {
+  return number === 1 ? 3 : number === 5 ? 1 : 2;
+}
+
 // Actual card (what other players see)
 export interface Card {
   color: Color;
@@ -34,6 +46,9 @@ export interface Clue {
   type: ClueType;
   value: Color | CardNumber;
   cardIds: string[]; // Which cards this clue applies to (by ID, not position)
+  // Every card in the hand when the clue was given. Cards drawn later learn nothing from it.
+  // Optional because games saved before this field existed don't have it.
+  handCardIds?: string[];
   timestamp: number;
 }
 
@@ -74,6 +89,7 @@ export interface GameState {
   isGameOver: boolean;
   score: number; // Sum of all fireworks
   lastRoundStarted?: boolean; // Flag when deck depletes (last round has begun)
+  finalTurnsLeft?: number; // Turns remaining after the last card is drawn
   needsCardInput?: boolean; // Whether we need to input other players' cards at start
   pendingCardInput?: { // When a player draws a new card
     playerId: string;

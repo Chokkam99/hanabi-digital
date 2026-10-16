@@ -1,6 +1,6 @@
 // Inference engine for Hanabi card deduction
 
-import { CardPossibilities, Clue, Color, CardNumber, Fireworks, Card } from '@/types/game';
+import { CardPossibilities, Clue, Color, CardNumber, Fireworks, Card, COLORS, NUMBERS, getCopiesPerCard } from '@/types/game';
 
 /**
  * Apply a clue to a player's hand, updating all card possibilities
@@ -10,6 +10,11 @@ export function applyClue(
   clue: Clue
 ): CardPossibilities[] {
   return hand.map((card) => {
+    // Cards drawn after the clue was given learn nothing from it
+    if (clue.handCardIds && !clue.handCardIds.includes(card.id)) {
+      return card;
+    }
+
     const wasSelected = clue.cardIds.includes(card.id);
 
     if (clue.type === 'color') {
@@ -66,6 +71,10 @@ function applyNumberClue(
   return newCard;
 }
 
+function countCards(cards: Card[], color: Color, number: CardNumber): number {
+  return cards.filter(c => c.color === color && c.number === number).length;
+}
+
 /**
  * Check if a card is safe to play based on current fireworks state
  * A card is safe to play if ALL its possibilities would continue a firework
@@ -93,8 +102,32 @@ export function isSafeToPlay(
 }
 
 /**
+ * Check if a specific card can never be played: either it's already on its firework,
+ * or every copy of a lower card in that color has been discarded
+ */
+export function isTrash(
+  color: Color,
+  number: CardNumber,
+  fireworks: Fireworks,
+  discardPile: Card[]
+): boolean {
+  if (number <= fireworks[color]) {
+    return true;
+  }
+
+  for (let lower = fireworks[color] + 1; lower < number; lower++) {
+    const lowerNumber = lower as CardNumber;
+    if (countCards(discardPile, color, lowerNumber) >= getCopiesPerCard(lowerNumber)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Check if a card is safe to discard
- * A card is safe to discard if ALL its possibilities are already played
+ * A card is safe to discard if ALL its possibilities are trash (already played or unreachable)
  */
 export function isSafeToDiscard(
   card: CardPossibilities,
@@ -106,42 +139,20 @@ export function isSafeToDiscard(
     return false;
   }
 
-  // Check all combinations
   for (const color of card.possibleColors) {
     for (const number of card.possibleNumbers) {
-      // If this card could be needed, it's not safe to discard
-      if (fireworks[color] < number) {
-        // Check if we've already discarded all copies of this card
-        // (This is a simplified check - could be enhanced later)
-        const discardedCount = discardPile.filter(
-          c => c.color === color && c.number === number
-        ).length;
+      // Every copy is already in the discard pile, so the card can't be this
+      if (countCards(discardPile, color, number) >= getCopiesPerCard(number)) {
+        continue;
+      }
 
-        // Card counts in Hanabi: three 1s, two 2-4s, one 5
-        const totalCount = number === 1 ? 3 : number === 5 ? 1 : 2;
-
-        if (discardedCount < totalCount) {
-          return false; // This card might be needed
-        }
+      if (!isTrash(color, number, fireworks, discardPile)) {
+        return false; // This card might be needed
       }
     }
   }
 
   return true;
-}
-
-/**
- * Get a human-readable summary of card possibilities
- */
-export function getCardSummary(card: CardPossibilities): string {
-  const colors = Array.from(card.possibleColors).join(', ');
-  const numbers = Array.from(card.possibleNumbers).join(', ');
-
-  if (card.possibleColors.size === 1 && card.possibleNumbers.size === 1) {
-    return `${colors} ${numbers}`;
-  }
-
-  return `Colors: ${colors} | Numbers: ${numbers}`;
 }
 
 /**
@@ -154,35 +165,29 @@ export function getPossibilityCount(card: CardPossibilities): number {
 /**
  * Compute what a player knows about their hand based on clues received
  * Starts with all possibilities for each card and applies clues by card ID
- * Only applies clues that reference cards still in the current hand
  */
 export function computePlayerKnowledge(
   actualHand: Card[],
   cluesReceived: Clue[]
 ): CardPossibilities[] {
   // Start with all possibilities for each card, using the actual card IDs
-  const hand: CardPossibilities[] = actualHand.map((card, position) => ({
+  let hand: CardPossibilities[] = actualHand.map((card, position) => ({
     id: card.id,
     position,
-    possibleColors: new Set(['red', 'yellow', 'green', 'blue', 'white'] as Color[]),
-    possibleNumbers: new Set([1, 2, 3, 4, 5] as CardNumber[]),
+    possibleColors: new Set(COLORS),
+    possibleNumbers: new Set(NUMBERS),
   }));
 
-  // Get all current card IDs
   const currentCardIds = new Set(actualHand.map(card => card.id));
 
-  // Apply each clue in order, but only if it references cards still in hand
   for (const clue of cluesReceived) {
-    // Check if any of the clue's card IDs are still in the current hand
-    const hasRelevantCards = clue.cardIds.some(cardId => currentCardIds.has(cardId));
-
-    if (hasRelevantCards) {
-      const updatedHand = applyClue(hand, clue);
-      // Update the hand with the new possibilities
-      updatedHand.forEach((card, idx) => {
-        hand[idx] = card;
-      });
+    // Clues saved before handCardIds existed don't record which cards were in hand,
+    // so only apply them while one of the touched cards is still held
+    if (!clue.handCardIds && !clue.cardIds.some(cardId => currentCardIds.has(cardId))) {
+      continue;
     }
+
+    hand = applyClue(hand, clue);
   }
 
   return hand;
@@ -195,8 +200,8 @@ export function getFinalPossibilities(card: CardPossibilities): {
   colors: Set<Color>;
   numbers: Set<CardNumber>;
 } {
-  let colors = new Set(card.possibleColors);
-  let numbers = new Set(card.possibleNumbers);
+  const colors = new Set(card.possibleColors);
+  const numbers = new Set(card.possibleNumbers);
 
   // Apply manual exclusions if they exist
   if (card.manualExclusions) {
@@ -204,41 +209,48 @@ export function getFinalPossibilities(card: CardPossibilities): {
     card.manualExclusions.numbers.forEach(number => numbers.delete(number));
   }
 
-  return { colors, numbers };
+  // A later clue can contradict an earlier manual exclusion; trust the clue
+  return {
+    colors: colors.size > 0 ? colors : new Set(card.possibleColors),
+    numbers: numbers.size > 0 ? numbers : new Set(card.possibleNumbers),
+  };
 }
 
 /**
  * Auto-deduce impossibilities based on visible cards (count elimination)
+ * Visible cards are other players' hands and the discard pile; cards already
+ * played on the fireworks are counted too
  * Returns updated hand with auto-detected exclusions added to manual exclusions
  */
 export function applyAutoDeductions(
   myHand: CardPossibilities[],
-  visibleCards: Card[]
+  visibleCards: Card[],
+  fireworks: Fireworks
 ): CardPossibilities[] {
+  // Count visible cards by color and number
+  const visibleCounts = new Map<string, number>();
+
+  for (const visibleCard of visibleCards) {
+    const key = `${visibleCard.color}-${visibleCard.number}`;
+    visibleCounts.set(key, (visibleCounts.get(key) || 0) + 1);
+  }
+
+  // Each firework holds one copy of every number up to its current level
+  for (const color of COLORS) {
+    for (let number = 1; number <= fireworks[color]; number++) {
+      const key = `${color}-${number}`;
+      visibleCounts.set(key, (visibleCounts.get(key) || 0) + 1);
+    }
+  }
+
   return myHand.map(card => {
     const newCard = { ...card };
 
-    // Initialize manual exclusions if not present
-    if (!newCard.manualExclusions) {
-      newCard.manualExclusions = {
-        colors: new Set(),
-        numbers: new Set(),
-      };
-    } else {
-      // Create new sets to avoid mutation
-      newCard.manualExclusions = {
-        colors: new Set(newCard.manualExclusions.colors),
-        numbers: new Set(newCard.manualExclusions.numbers),
-      };
-    }
-
-    // Count visible cards by color and number
-    const visibleCounts = new Map<string, number>();
-
-    for (const visibleCard of visibleCards) {
-      const key = `${visibleCard.color}-${visibleCard.number}`;
-      visibleCounts.set(key, (visibleCounts.get(key) || 0) + 1);
-    }
+    // Create new sets to avoid mutation
+    newCard.manualExclusions = {
+      colors: new Set(card.manualExclusions?.colors),
+      numbers: new Set(card.manualExclusions?.numbers),
+    };
 
     // First, identify all impossible combinations
     const impossibleCombinations = new Set<string>();
@@ -246,13 +258,9 @@ export function applyAutoDeductions(
     for (const color of card.possibleColors) {
       for (const number of card.possibleNumbers) {
         const key = `${color}-${number}`;
-        const visibleCount = visibleCounts.get(key) || 0;
-
-        // Hanabi card counts: three 1s, two 2-4s, one 5
-        const totalCopies = number === 1 ? 3 : number === 5 ? 1 : 2;
 
         // If all copies are visible, this combination is impossible
-        if (visibleCount >= totalCopies) {
+        if ((visibleCounts.get(key) || 0) >= getCopiesPerCard(number)) {
           impossibleCombinations.add(key);
         }
       }

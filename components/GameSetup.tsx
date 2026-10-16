@@ -1,23 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { GameSetup as GameSetupType } from '@/types/game';
+import { GameSetup as GameSetupType, COLORS, CardNumber } from '@/types/game';
+import { CardFace } from './Card';
+import Button from './ui/Button';
 
 interface GameSetupProps {
   onStartGame: (setup: GameSetupType) => void;
 }
 
+type PlayerCount = 2 | 3 | 4 | 5;
+const PLAYER_COUNTS: PlayerCount[] = [2, 3, 4, 5];
+const FAN_ANGLES = [-16, -8, 0, 8, 16];
+
 export default function GameSetup({ onStartGame }: GameSetupProps) {
-  const [playerCount, setPlayerCount] = useState<2 | 3 | 4 | 5>(4);
+  const [playerCount, setPlayerCount] = useState<PlayerCount>(4);
   const [playerNames, setPlayerNames] = useState<string[]>(['', '', '', '']);
   const [myPlayerIndex, setMyPlayerIndex] = useState<number>(0);
 
-  const handlePlayerCountChange = (count: 2 | 3 | 4 | 5) => {
+  const handlePlayerCountChange = (count: PlayerCount) => {
     setPlayerCount(count);
-    const newNames = Array(count).fill('').map((_, i) =>
-      i < playerNames.length ? playerNames[i] : ''
-    );
-    setPlayerNames(newNames);
+    setPlayerNames(Array.from({ length: count }, (_, i) => playerNames[i] ?? ''));
     if (myPlayerIndex >= count) {
       setMyPlayerIndex(0);
     }
@@ -30,101 +33,99 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
   };
 
   const handleStartGame = () => {
-    // Validate: all names filled
-    const allNamesFilled = playerNames.every(name => name.trim().length > 0);
-    if (!allNamesFilled) {
-      alert('Please enter names for all players');
-      return;
-    }
-
     onStartGame({
       playerCount,
-      playerNames: playerNames.map(n => n.trim()),
+      // Blank names fall back to their seat, so a game can start in one tap
+      playerNames: playerNames.map((n, i) => n.trim() || `Player ${i + 1}`),
       myPlayerIndex,
     });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-900 via-purple-900 to-pink-900 p-4 flex flex-col items-center justify-center">
-      <div className="w-full max-w-md bg-white/10 backdrop-blur-md rounded-3xl shadow-2xl p-6 space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-white">🎆 Hanabi Digital</h1>
-          <p className="text-white/80 text-sm">Create the perfect fireworks show</p>
+    <main className="min-h-dvh bg-mat px-5 pt-[max(2.5rem,env(safe-area-inset-top))] pb-safe">
+      <div className="mx-auto max-w-md">
+        {/* The five suits, fanned like a hand */}
+        <div className="flex h-36 items-end justify-center" aria-hidden="true">
+          {COLORS.map((color, i) => (
+            <div
+              key={color}
+              className="-mx-2 w-16 origin-bottom"
+              style={{ transform: `rotate(${FAN_ANGLES[i]}deg) translateY(${Math.abs(FAN_ANGLES[i]) * 0.5}px)` }}
+            >
+              <CardFace color={color} number={(i + 1) as CardNumber} />
+            </div>
+          ))}
         </div>
 
-        {/* Player Count Selector */}
-        <div className="space-y-3">
-          <label className="text-white font-semibold text-sm">Number of Players</label>
-          <div className="grid grid-cols-4 gap-2">
-            {[2, 3, 4, 5].map((count) => (
-              <button
-                key={count}
-                onClick={() => handlePlayerCountChange(count as 2 | 3 | 4 | 5)}
-                className={`py-3 rounded-xl font-bold text-lg transition-all ${
-                  playerCount === count
-                    ? 'bg-white text-purple-900 shadow-lg scale-105'
-                    : 'bg-white/20 text-white hover:bg-white/30'
-                }`}
-              >
-                {count}
-              </button>
-            ))}
-          </div>
-        </div>
+        <h1 className="mt-8 text-center text-[34px] leading-none font-bold tracking-tight [font-stretch:112%]">
+          Hanabi Digital
+        </h1>
+        <p className="mx-auto mt-3 max-w-[30ch] text-center text-[15px] text-ink-2">
+          Keeps every clue straight at the table, so you can keep your eyes on the cards.
+        </p>
 
-        {/* Player Names */}
-        <div className="space-y-3">
-          <label className="text-white font-semibold text-sm">Player Names</label>
-          <div className="space-y-2">
-            {playerNames.map((name, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm">
-                  {index + 1}
-                </div>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => handleNameChange(index, e.target.value)}
-                  placeholder={`Player ${index + 1}`}
-                  className="flex-1 px-4 py-3 rounded-xl bg-white/10 text-white placeholder-white/50 border-2 border-white/20 focus:border-white/50 focus:outline-none transition-all"
-                  maxLength={20}
-                />
+        <div className="mt-10 space-y-8">
+          <fieldset>
+            <legend className="mb-3 text-sm font-semibold text-ink">Players</legend>
+            <div role="radiogroup" aria-label="Number of players" className="grid grid-cols-4 gap-1 rounded-2xl bg-lacquer p-1">
+              {PLAYER_COUNTS.map(count => (
                 <button
-                  onClick={() => setMyPlayerIndex(index)}
-                  className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                    myPlayerIndex === index
-                      ? 'bg-green-500 text-white shadow-lg'
-                      : 'bg-white/20 text-white/70 hover:bg-white/30'
+                  key={count}
+                  role="radio"
+                  aria-checked={playerCount === count}
+                  onClick={() => handlePlayerCountChange(count)}
+                  className={`h-12 rounded-xl text-xl font-extrabold transition-colors duration-150 [font-stretch:80%] ${
+                    playerCount === count ? 'bg-ink text-mat' : 'text-ink-2 hover:bg-lacquer-2 hover:text-ink'
                   }`}
                 >
-                  {myPlayerIndex === index ? '✓ Me' : 'Me'}
+                  {count}
                 </button>
-              </div>
-            ))}
-          </div>
-          <p className="text-white/60 text-xs">Select which player is you</p>
-        </div>
+              ))}
+            </div>
+          </fieldset>
 
-        {/* Start Game Button */}
-        <button
-          onClick={handleStartGame}
-          className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95"
-        >
-          Start Game 🚀
-        </button>
+          <fieldset>
+            <legend className="mb-1 text-sm font-semibold text-ink">Names, in turn order</legend>
+            <p className="mb-3 text-[13px] text-ink-2">Mark which one is you.</p>
+            <ol className="space-y-2">
+              {playerNames.map((name, index) => {
+                const isMe = myPlayerIndex === index;
+                return (
+                  <li key={index} className="flex items-center gap-2">
+                    <span className="w-5 shrink-0 text-center text-sm font-semibold text-ink-3">{index + 1}</span>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={e => handleNameChange(index, e.target.value)}
+                      placeholder={`Player ${index + 1}`}
+                      aria-label={`Player ${index + 1} name`}
+                      maxLength={20}
+                      autoComplete="off"
+                      className="h-12 min-w-0 flex-1 rounded-xl border border-rule bg-lacquer px-4 text-[16px] text-ink placeholder:text-ink-2/70 focus:border-ink-2 focus:outline-none"
+                    />
+                    <button
+                      role="radio"
+                      aria-checked={isMe}
+                      aria-label={`Player ${index + 1} is me`}
+                      onClick={() => setMyPlayerIndex(index)}
+                      className={`h-12 w-16 shrink-0 rounded-xl text-sm font-semibold transition-colors duration-150 ${
+                        isMe ? 'bg-ink text-mat' : 'border border-rule text-ink-3 hover:text-ink'
+                      }`}
+                    >
+                      You
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </fieldset>
 
-        {/* Info */}
-        <div className="bg-white/5 rounded-xl p-4 space-y-2">
-          <h3 className="text-white font-semibold text-sm">How to play:</h3>
-          <ul className="text-white/70 text-xs space-y-1 list-disc list-inside">
-            <li>You cannot see your own cards</li>
-            <li>Give clues about colors or numbers</li>
-            <li>Build fireworks from 1 to 5</li>
-            <li>Work together to get the highest score!</li>
-          </ul>
+          <Button variant="primary" size="lg" className="w-full" onClick={handleStartGame}>
+            Deal the cards
+          </Button>
+          <p className="pb-6 text-center text-[13px] text-ink-3">The game is saved on this phone as you play.</p>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

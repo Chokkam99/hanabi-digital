@@ -1,336 +1,240 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { GameState, Player, Color, CardNumber, COLORS, NUMBERS, Card } from '@/types/game';
-import SmallCardPreview from './SmallCardPreview';
+import { useEffect, useState } from 'react';
+import { GameState, Color, CardNumber, Card } from '@/types/game';
+import { getHandSize } from '@/utils/gameInit';
+import CardPicker from './CardPicker';
+import { CardFace, EmptySlot } from './Card';
+import Button from './ui/Button';
 
 interface CardInputScreenProps {
   gameState: GameState;
   onComplete: (updatedState: GameState, saveToHistory?: boolean) => void;
 }
 
-const colorEmojis: Record<Color, string> = {
-  red: '🔴',
-  yellow: '🟡',
-  green: '🟢',
-  blue: '🔵',
-  white: '⚪',
-};
-
 export default function CardInputScreen({ gameState, onComplete }: CardInputScreenProps) {
   const otherPlayers = gameState.players.filter(p => !p.isMe);
-  const totalCards = gameState.players.length <= 3 ? 5 : 4;
+  const totalCards = getHandSize(gameState.players.length);
 
   // State for tracking all players' cards locally
-  const [allPlayersCards, setAllPlayersCards] = useState<Map<string, Card[]>>(new Map());
-  const [editingCard, setEditingCard] = useState<{playerId: string, index: number} | null>(null);
+  const [allPlayersCards, setAllPlayersCards] = useState<Map<string, Card[]>>(
+    () => new Map<string, Card[]>(otherPlayers.map(p => [p.id, []]))
+  );
+  const [editingCard, setEditingCard] = useState<{ playerId: string; index: number } | null>(null);
   const [selectedColor, setSelectedColor] = useState<Color | null>(null);
   const [selectedNumber, setSelectedNumber] = useState<CardNumber | null>(null);
   const [currentPlayerId, setCurrentPlayerId] = useState<string>(otherPlayers[0]?.id || '');
 
-  // Initialize the map with empty arrays for each player
+  // Keep the hand being entered in view above the picker
   useEffect(() => {
-    const initialMap = new Map<string, Card[]>();
-    otherPlayers.forEach(p => {
-      initialMap.set(p.id, []);
-    });
-    setAllPlayersCards(initialMap);
-  }, []);
-
-  const handleAddOrUpdateCard = () => {
-    if (!selectedColor || !selectedNumber) {
-      return;
+    const section = document.getElementById(`deal-section-${currentPlayerId}`);
+    if (!section) return;
+    const pickerTop = window.innerHeight - 400;
+    const rect = section.getBoundingClientRect();
+    if (rect.bottom > pickerTop || rect.top < 80) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+  }, [currentPlayerId]);
 
-    const newCard: Card = {
-      id: `card-${currentPlayerId}-${Date.now()}`,
-      color: selectedColor,
-      number: selectedNumber,
-    };
+  const cardsFor = (playerId: string) => allPlayersCards.get(playerId) || [];
+  const totalEntered = otherPlayers.reduce((sum, p) => sum + cardsFor(p.id).length, 0);
+  const totalNeeded = otherPlayers.length * totalCards;
+  const isComplete = totalEntered === totalNeeded;
+  const currentPlayer = otherPlayers.find(p => p.id === currentPlayerId);
 
-    setAllPlayersCards(prev => {
-      const newMap = new Map(prev);
-      const playerCards = newMap.get(currentPlayerId) || [];
-
-      if (editingCard && editingCard.playerId === currentPlayerId) {
-        // Update existing card
-        const updatedCards = [...playerCards];
-        updatedCards[editingCard.index] = newCard;
-        newMap.set(currentPlayerId, updatedCards);
-      } else {
-        // Add new card at the left-most position - only if player doesn't have max cards already
-        if (playerCards.length < totalCards) {
-          newMap.set(currentPlayerId, [newCard, ...playerCards]);
-        }
-      }
-
-      return newMap;
-    });
-
-    // Reset selection
+  const resetPicker = () => {
     setSelectedColor(null);
     setSelectedNumber(null);
     setEditingCard(null);
+  };
 
-    // Auto-advance to next player if current player's hand is complete
-    if (!editingCard) {
-      const currentCards = allPlayersCards.get(currentPlayerId) || [];
-      if (currentCards.length + 1 >= totalCards) {
-        const currentIndex = otherPlayers.findIndex(p => p.id === currentPlayerId);
-        if (currentIndex < otherPlayers.length - 1) {
-          setCurrentPlayerId(otherPlayers[currentIndex + 1].id);
-        }
+  // A card is entered as soon as both its suit and number are picked
+  const apply = (color: Color, number: CardNumber) => {
+    const playerCards = cardsFor(currentPlayerId);
+    const newMap = new Map(allPlayersCards);
+
+    if (editingCard && editingCard.playerId === currentPlayerId) {
+      // Update existing card, keeping its id
+      newMap.set(
+        currentPlayerId,
+        playerCards.map((card, i) => (i === editingCard.index ? { ...card, color, number } : card))
+      );
+    } else if (playerCards.length < totalCards) {
+      // Cards are entered left to right, in the order they appear in the hand
+      const newCard: Card = {
+        id: `card-${currentPlayerId}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+        color,
+        number,
+      };
+      newMap.set(currentPlayerId, [...playerCards, newCard]);
+
+      // Move on to the next player once this hand is full
+      if (playerCards.length + 1 >= totalCards) {
+        const next = otherPlayers.find(p => (newMap.get(p.id) || []).length < totalCards);
+        if (next) setCurrentPlayerId(next.id);
       }
     }
+
+    setAllPlayersCards(newMap);
+    resetPicker();
+  };
+
+  const handleSelectColor = (color: Color) => {
+    if (selectedNumber) apply(color, selectedNumber);
+    else setSelectedColor(color);
+  };
+
+  const handleSelectNumber = (number: CardNumber) => {
+    if (selectedColor) apply(selectedColor, number);
+    else setSelectedNumber(number);
   };
 
   const handleCardClick = (playerId: string, cardIndex: number) => {
-    const playerCards = allPlayersCards.get(playerId) || [];
-    const card = playerCards[cardIndex];
-
-    if (card) {
-      setEditingCard({ playerId, index: cardIndex });
-      setSelectedColor(card.color);
-      setSelectedNumber(card.number);
-      setCurrentPlayerId(playerId);
+    const card = cardsFor(playerId)[cardIndex];
+    if (editingCard?.playerId === playerId && editingCard.index === cardIndex) {
+      resetPicker();
+      return;
     }
+    setEditingCard({ playerId, index: cardIndex });
+    setSelectedColor(card.color);
+    setSelectedNumber(card.number);
+    setCurrentPlayerId(playerId);
   };
 
   const handleStartGame = () => {
-    // Copy all cards to gameState
-    const updatedPlayers = gameState.players.map(p => {
-      if (p.isMe) return p;
-
-      const cards = allPlayersCards.get(p.id) || [];
-      return {
-        ...p,
-        hand: cards,
-      };
-    });
-
-    onComplete({
-      ...gameState,
-      players: updatedPlayers,
-      needsCardInput: false,
-    }, false); // Don't save card input to undo history
+    onComplete(
+      {
+        ...gameState,
+        players: gameState.players.map(p => (p.isMe ? p : { ...p, hand: cardsFor(p.id) })),
+        needsCardInput: false,
+      },
+      false // Don't save card input to undo history
+    );
   };
 
-  const getTotalEntered = () => {
-    let total = 0;
-    allPlayersCards.forEach(cards => {
-      total += cards.length;
-    });
-    return total;
-  };
-
-  const isComplete = () => {
-    return otherPlayers.every(p => {
-      const cards = allPlayersCards.get(p.id) || [];
-      return cards.length === totalCards;
-    });
-  };
-
-  const progress = (getTotalEntered() / (otherPlayers.length * totalCards)) * 100;
+  const prompt = editingCard
+    ? `Changing ${currentPlayer?.name}'s slot ${editingCard.index + 1}`
+    : currentPlayer && cardsFor(currentPlayer.id).length < totalCards
+    ? `${currentPlayer.name}, slot ${cardsFor(currentPlayer.id).length + 1}`
+    : 'Every hand is entered';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-900 via-purple-900 to-pink-900 p-3 flex flex-col gap-3">
-      {/* Header */}
-      <div className="text-center max-w-4xl mx-auto w-full">
-        <h1 className="text-lg font-bold text-white mb-1">Enter Initial Cards</h1>
-        <p className="text-white/70 text-xs mb-2">
-          {getTotalEntered()} of {otherPlayers.length * totalCards} cards
-        </p>
-        {/* Progress Bar */}
-        <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+    <main className="min-h-dvh bg-mat pb-[25rem]">
+      <header className="sticky top-0 z-20 border-b border-rule bg-lacquer/95 px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-4 backdrop-blur-md">
+        <div className="mx-auto max-w-xl">
+          <div className="flex items-baseline justify-between gap-4">
+            <h1 className="text-xl font-semibold tracking-tight [font-stretch:92%]">The hands you can see</h1>
+            <span className="text-sm text-ink-2">
+              {totalEntered} of {totalNeeded}
+            </span>
+          </div>
           <div
-            className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-300"
-            style={{ width: `${progress}%` }}
-          />
+            className="mt-3 h-1 overflow-hidden rounded-full bg-lacquer-3"
+            role="progressbar"
+            aria-valuenow={totalEntered}
+            aria-valuemax={totalNeeded}
+            aria-label="Cards entered"
+          >
+            <div
+              className="h-full rounded-full bg-ink transition-[width] duration-300 ease-out"
+              style={{ width: `${(totalEntered / totalNeeded) * 100}%` }}
+            />
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Player Hands Display */}
-      <div className="space-y-1.5 max-w-4xl mx-auto w-full">
-        <h2 className="text-white font-semibold text-sm px-1">Other Players</h2>
-        {otherPlayers.map((player) => {
-          const playerCards = allPlayersCards.get(player.id) || [];
+      <div className="mx-auto max-w-xl space-y-3 px-5 pt-5">
+        <p className="text-[13px] text-ink-2">Enter each hand left to right as you see it. Tap a card to fix it.</p>
+        {otherPlayers.map(player => {
+          const playerCards = cardsFor(player.id);
           const isActive = currentPlayerId === player.id;
-          const isPlayerComplete = playerCards.length === totalCards;
 
           return (
-            <div
+            <section
               key={player.id}
-              className={`bg-white/10 backdrop-blur-md rounded-lg p-2 transition-all duration-300 cursor-pointer ${
-                isActive ? 'ring-1 ring-green-400 shadow-md' : 'hover:bg-white/15'
+              id={`deal-section-${player.id}`}
+              aria-labelledby={`deal-${player.id}`}
+              className={`rounded-2xl border p-4 transition-colors duration-200 ${
+                isActive ? 'border-ink-3 bg-lacquer' : 'border-rule'
               }`}
-              onClick={() => !isPlayerComplete && setCurrentPlayerId(player.id)}
             >
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full text-white font-medium text-[10px]">
-                  {player.name}
-                </span>
-                {isPlayerComplete && (
-                  <span className="text-green-400 text-xs">✓</span>
-                )}
-                <span className="text-white/60 text-[10px] ml-auto">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 id={`deal-${player.id}`} className="font-semibold">
+                  <button
+                    onClick={() => {
+                      setCurrentPlayerId(player.id);
+                      setEditingCard(null);
+                    }}
+                    className="hover:underline"
+                  >
+                    {player.name}
+                  </button>
+                </h2>
+                <span className="text-sm text-ink-2">
                   {playerCards.length}/{totalCards}
                 </span>
               </div>
 
-              {/* Cards Display */}
-              <div className="flex gap-1 overflow-x-auto pb-0.5">
-                {playerCards.map((card, index) => (
-                  <div
-                    key={card.id}
-                    className="flex-shrink-0 cursor-pointer transition-all hover:scale-110 active:scale-95"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCardClick(player.id, index);
-                    }}
-                  >
-                    <SmallCardPreview
-                      card={card}
-                      isEditing={editingCard?.playerId === player.id && editingCard?.index === index}
-                    />
-                  </div>
-                ))}
-
-                {/* Placeholder cards */}
-                {Array.from({ length: totalCards - playerCards.length }).map((_, i) => (
-                  <div
-                    key={`placeholder-${i}`}
-                    className="w-[60px] h-[84px] border-2 border-dashed border-white/30 rounded-lg flex items-center justify-center text-white/40 text-2xl flex-shrink-0 bg-white/5"
-                  >
-                    ?
-                  </div>
-                ))}
-              </div>
-            </div>
+              <ol className="grid gap-2" style={{ gridTemplateColumns: `repeat(${totalCards}, minmax(0, 1fr))` }}>
+                {playerCards.map((card, index) => {
+                  const editing = editingCard?.playerId === player.id && editingCard.index === index;
+                  return (
+                    <li key={card.id}>
+                      <button
+                        onClick={() => handleCardClick(player.id, index)}
+                        aria-pressed={editing}
+                        aria-label={`${player.name} slot ${index + 1}`}
+                        className={`w-full max-w-16 rounded-[10%/6%] transition-transform duration-200 ${
+                          editing ? '-translate-y-1 ring-2 ring-ink ring-offset-2 ring-offset-lacquer' : ''
+                        }`}
+                      >
+                        <CardFace color={card.color} number={card.number} />
+                      </button>
+                    </li>
+                  );
+                })}
+                {Array.from({ length: totalCards - playerCards.length }, (_, i) => {
+                  const next = isActive && !editingCard && i === 0;
+                  return (
+                    <li key={`empty-${i}`}>
+                      <button
+                        onClick={() => {
+                          setCurrentPlayerId(player.id);
+                          setEditingCard(null);
+                        }}
+                        aria-label={`Enter ${player.name}'s slot ${playerCards.length + i + 1}`}
+                        className={`block w-full max-w-16 rounded-[10%/6%] ${next ? 'ring-2 ring-ink ring-offset-2 ring-offset-lacquer' : ''}`}
+                      >
+                        <EmptySlot />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </section>
           );
         })}
       </div>
 
-      {/* Card Selection Panel */}
-      <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 space-y-3 max-w-sm mx-auto w-full">
-        <div className="text-center">
-          <h3 className="text-white font-medium text-xs">
-            {editingCard ? (
-              <>Editing</>
-            ) : (
-              <>
-                {otherPlayers.find(p => p.id === currentPlayerId)?.name}
-              </>
-            )}
-          </h3>
-        </div>
-
-        <div className="flex gap-3">
-          {/* Color Selection */}
-          <div className="flex-1 space-y-1">
-            <label className="text-white font-medium text-[10px]">Color</label>
-            <div className="grid grid-cols-5 gap-1">
-              {COLORS.map(color => (
-                <button
-                  key={color}
-                  onClick={() => setSelectedColor(color)}
-                  className={`aspect-square rounded-lg text-2xl transition-all ${
-                    selectedColor === color
-                      ? 'bg-white shadow-md scale-110'
-                      : 'bg-white/20 hover:bg-white/30'
-                  }`}
-                >
-                  {colorEmojis[color]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Number Selection */}
-          <div className="flex-1 space-y-1">
-            <label className="text-white font-medium text-[10px]">Number</label>
-            <div className="grid grid-cols-5 gap-1">
-              {NUMBERS.map(number => (
-                <button
-                  key={number}
-                  onClick={() => setSelectedNumber(number)}
-                  className={`aspect-square rounded-lg font-bold text-lg transition-all ${
-                    selectedNumber === number
-                      ? 'bg-white text-purple-900 shadow-md scale-110'
-                      : 'bg-white/20 text-white hover:bg-white/30'
-                  }`}
-                >
-                  {number}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Selected Card Preview */}
-        {selectedColor && selectedNumber && (
-          <div className="bg-white/10 rounded-lg p-2 text-center flex items-center justify-center gap-2">
-            <div className="text-3xl">{colorEmojis[selectedColor]}</div>
-            <div className="text-2xl font-bold text-white">{selectedNumber}</div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex gap-1.5">
-          {editingCard && (
-            <button
-              onClick={() => {
-                setEditingCard(null);
-                setSelectedColor(null);
-                setSelectedNumber(null);
-              }}
-              className="flex-1 py-2 rounded-lg font-medium text-xs bg-white/20 text-white hover:bg-white/30 transition-all active:scale-95"
-            >
-              Cancel
-            </button>
+      <div className="fixed inset-x-0 bottom-0 z-30">
+        <div className="mx-auto max-w-xl rounded-t-2xl border border-b-0 border-rule bg-lacquer-2 px-5 pt-4 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+          <p className="mb-3 text-sm font-semibold" aria-live="polite">
+            {prompt}
+          </p>
+          <CardPicker
+            selectedColor={selectedColor}
+            selectedNumber={selectedNumber}
+            onSelectColor={handleSelectColor}
+            onSelectNumber={handleSelectNumber}
+          />
+          <Button variant={isComplete ? 'primary' : 'secondary'} size="lg" className="mt-4 w-full" onClick={handleStartGame}>
+            {isComplete ? 'Start the game' : `Start with ${totalEntered} of ${totalNeeded}`}
+          </Button>
+          {!isComplete && (
+            <p className="mt-2 text-center text-xs text-ink-2">You can add missing cards during the game.</p>
           )}
-
-          <button
-            onClick={handleAddOrUpdateCard}
-            disabled={!selectedColor || !selectedNumber || (!editingCard && (allPlayersCards.get(currentPlayerId)?.length || 0) >= totalCards)}
-            className={`flex-1 py-2 rounded-lg font-medium text-xs transition-all ${
-              selectedColor && selectedNumber && (editingCard || (allPlayersCards.get(currentPlayerId)?.length || 0) < totalCards)
-                ? editingCard
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md active:scale-95'
-                  : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-md active:scale-95'
-                : 'bg-gray-500 text-gray-300 cursor-not-allowed'
-            }`}
-          >
-            {editingCard ? 'Update' : 'Add →'}
-          </button>
-        </div>
-
-        {/* Start Game Buttons */}
-        <div className="space-y-2">
-          {!isComplete() && (
-            <p className="text-white/60 text-xs text-center">
-              💡 You can add missing cards later during the game
-            </p>
-          )}
-
-          <div className="flex gap-2">
-            {isComplete() ? (
-              <button
-                onClick={handleStartGame}
-                className="w-full py-3 rounded-lg font-semibold text-sm bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-md active:scale-95 animate-pulse"
-              >
-                Start Game! 🚀
-              </button>
-            ) : (
-              <button
-                onClick={handleStartGame}
-                className="w-full py-3 rounded-lg font-semibold text-sm bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-md active:scale-95"
-              >
-                Start Game ({getTotalEntered()} cards entered) →
-              </button>
-            )}
-          </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

@@ -1,355 +1,194 @@
 'use client';
 
 import { useState } from 'react';
-import { Player, GameState, CardPossibilities, Card, Color, CardNumber, ClueType } from '@/types/game';
-import CardDisplay from './CardDisplay';
-import RevealCardModal from './RevealCardModal';
-import HintControlPanel from './HintControlPanel';
-import DeductionModal from './DeductionModal';
-import { computePlayerKnowledge, getFinalPossibilities } from '@/utils/inference';
-import { giveClue } from '@/utils/gameActions';
+import { Player, GameState, CardPossibilities, Card, Clue, Color, CardNumber } from '@/types/game';
+import { computePlayerKnowledge, getFinalPossibilities, isSafeToPlay, isSafeToDiscard } from '@/utils/inference';
+import { CardFace, EmptySlot, KnowledgeCard } from './Card';
+import SuitEmblem, { SUIT_TEXT } from './SuitEmblem';
+import Icon from './ui/Icon';
 
 interface PlayerHandProps {
   player: Player;
-  isMyHand: boolean;
-  showKnowledge: boolean; // Show possibilities/clues
   gameState: GameState;
-  onUpdateGame: (newState: GameState) => void;
+  handSize: number;
+  selectedCardIds: string[];
+  onToggleCard: (cardId: string) => void;
+  onEditCards?: () => void;
+  onOpenDeductions?: () => void;
+}
+
+const headerButton =
+  'flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-lacquer-2 hover:text-ink';
+
+function ClueChip({ clue, hand }: { clue: Clue; hand: (Card | CardPossibilities)[] }) {
+  // Slots the clue's touched cards occupy now (cards move as they're played and drawn)
+  const slots = clue.cardIds
+    .map(id => hand.findIndex(c => c.id === id))
+    .filter(pos => pos !== -1)
+    .map(pos => pos + 1);
+
+  return (
+    <li className="flex shrink-0 items-center gap-1.5 rounded-full border border-rule bg-lacquer px-2.5 py-1 text-[13px]">
+      {clue.type === 'color' ? (
+        <SuitEmblem color={clue.value as Color} size={14} className={SUIT_TEXT[clue.value as Color]} labelled />
+      ) : (
+        <span className="font-extrabold [font-stretch:80%]">{clue.value as CardNumber}</span>
+      )}
+      <Icon name="arrow-right" size={12} className="text-ink-3" />
+      <span className="text-ink-2">
+        {slots.length > 0 ? (
+          <>
+            <span className="sr-only">on slots </span>
+            {slots.join(' · ')}
+          </>
+        ) : (
+          'gone'
+        )}
+      </span>
+    </li>
+  );
 }
 
 export default function PlayerHand({
   player,
-  isMyHand,
-  showKnowledge,
   gameState,
-  onUpdateGame,
+  handSize,
+  selectedCardIds,
+  onToggleCard,
+  onEditCards,
+  onOpenDeductions,
 }: PlayerHandProps) {
-  // State for card selection (hints)
-  const [selectedPositions, setSelectedPositions] = useState<number[]>([]);
+  // For other players: show their cards as they see them (from the clues they've had)
+  const [theirView, setTheirView] = useState(false);
+  const { settings, fireworks, discardPile } = gameState;
 
-  // State for reveal modal (play/discard)
-  const [showRevealModal, setShowRevealModal] = useState(false);
-  const [revealAction, setRevealAction] = useState<{type: 'play' | 'discard', position: number} | null>(null);
+  const hand = player.hand as (Card | CardPossibilities)[];
+  const knowledge: CardPossibilities[] | null = player.isMe
+    ? (player.hand as CardPossibilities[]).map(card => {
+        if (!settings.showDeductions) return card;
+        const { colors, numbers } = getFinalPossibilities(card);
+        return { ...card, possibleColors: colors, possibleNumbers: numbers };
+      })
+    : theirView
+    ? computePlayerKnowledge(player.hand as Card[], player.cluesReceived)
+    : null;
 
-  // State for deduction modal
-  const [showDeductionModal, setShowDeductionModal] = useState(false);
-
-  // Handlers for play/discard actions
-  const handlePlay = (position: number) => {
-    setRevealAction({ type: 'play', position });
-    setShowRevealModal(true);
-  };
-
-  const handleDiscard = (position: number) => {
-    setRevealAction({ type: 'discard', position });
-    setShowRevealModal(true);
-  };
-
-  // Handler for card selection (for hints)
-  const handleToggleSelect = (position: number) => {
-    setSelectedPositions(prev =>
-      prev.includes(position)
-        ? prev.filter(p => p !== position)
-        : [...prev, position]
-    );
-  };
-
-  // Handler for giving hints
-  const handleGiveHint = (type: ClueType, value: Color | CardNumber) => {
-    try {
-      const newState = giveClue(
-        gameState,
-        player.id,
-        selectedPositions,
-        type,
-        value
-      );
-      onUpdateGame(newState);
-      setSelectedPositions([]);
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to give hint');
-    }
-  };
-
-  // Handler for reordering cards
-  const handleMoveCard = (fromIndex: number, direction: 'left' | 'right') => {
-    const toIndex = direction === 'left' ? fromIndex - 1 : fromIndex + 1;
-    if (toIndex < 0 || toIndex >= player.hand.length) return;
-
-    if (player.isMe) {
-      const newHand = [...(player.hand as CardPossibilities[])];
-      [newHand[fromIndex], newHand[toIndex]] = [newHand[toIndex], newHand[fromIndex]];
-
-      // Update positions immutably
-      const reindexedHand = newHand.map((card, idx) => ({
-        ...card,
-        position: idx,
-      }));
-
-      const updatedPlayers = gameState.players.map(p =>
-        p.id === player.id ? { ...p, hand: reindexedHand } : p
-      );
-
-      onUpdateGame({ ...gameState, players: updatedPlayers });
-    } else {
-      const newHand = [...(player.hand as Card[])];
-      [newHand[fromIndex], newHand[toIndex]] = [newHand[toIndex], newHand[fromIndex]];
-
-      const updatedPlayers = gameState.players.map(p =>
-        p.id === player.id ? { ...p, hand: newHand } : p
-      );
-
-      onUpdateGame({ ...gameState, players: updatedPlayers });
-    }
-  };
-
-  // Toggle deduction display
-  const handleToggleDeductions = () => {
-    onUpdateGame({
-      ...gameState,
-      settings: {
-        ...gameState.settings,
-        showDeductions: !gameState.settings.showDeductions,
-      },
-    });
-  };
-
-  // Calculate expected hand size based on player count
-  const expectedHandSize = gameState.players.length <= 3 ? 5 : 4;
-
-  // Compute what this player knows if we're viewing their knowledge
-  // For "me", use the actual CardPossibilities in their hand
-  // For other players, compute from clues received
-  const displayHand: (CardPossibilities | Card)[] = (() => {
-    if (showKnowledge && !isMyHand) {
-      // Viewing another player's knowledge
-      // Their hand should be Card[] (visible cards)
-      if (player.isMe) {
-        // This shouldn't happen - if isMyHand is false, player.isMe should also be false
-        console.error('Logic error: viewing other player but player.isMe is true');
-        return player.hand as (CardPossibilities | Card)[];
-      }
-
-      const currentHand = player.hand as Card[];
-      let knowledgeHand: CardPossibilities[];
-
-      // If the player's hand is empty, create placeholder possibilities
-      if (currentHand.length === 0) {
-        knowledgeHand = Array.from({ length: expectedHandSize }, (_, position) => ({
-          id: `placeholder-${player.id}-${position}`,
-          position,
-          possibleColors: new Set(['red', 'yellow', 'green', 'blue', 'white'] as Color[]),
-          possibleNumbers: new Set([1, 2, 3, 4, 5] as CardNumber[]),
-        }));
-      } else {
-        knowledgeHand = computePlayerKnowledge(currentHand, player.cluesReceived);
-      }
-
-      // Fill remaining slots with placeholders if needed
-      if (knowledgeHand.length < expectedHandSize) {
-        const placeholders = Array.from(
-          { length: expectedHandSize - knowledgeHand.length },
-          (_, i) => ({
-            id: `placeholder-${player.id}-${knowledgeHand.length + i}`,
-            position: knowledgeHand.length + i,
-            possibleColors: new Set(['red', 'yellow', 'green', 'blue', 'white'] as Color[]),
-            possibleNumbers: new Set([1, 2, 3, 4, 5] as CardNumber[]),
-          })
-        );
-        return [...knowledgeHand, ...placeholders];
-      }
-
-      return knowledgeHand;
-    }
-
-    // For other players (not viewing knowledge), show actual cards + placeholders
-    if (!isMyHand && !player.isMe) {
-      const currentHand = player.hand as Card[];
-
-      // Fill remaining slots with placeholder cards if needed
-      if (currentHand.length < expectedHandSize) {
-        const placeholders = Array.from(
-          { length: expectedHandSize - currentHand.length },
-          (_, i) => ({
-            id: `placeholder-${player.id}-${currentHand.length + i}`,
-            color: 'white' as Color,
-            number: 0 as any, // Placeholder number (invalid, will be detected as placeholder)
-          })
-        );
-        return [...currentHand, ...placeholders];
-      }
-
-      return currentHand;
-    }
-
-    // For my hand, apply deductions if enabled
-    if (isMyHand && gameState.settings.showDeductions && player.isMe) {
-      return (player.hand as CardPossibilities[]).map(card => {
-        const finalPossibilities = getFinalPossibilities(card);
-        return {
-          ...card,
-          possibleColors: finalPossibilities.colors,
-          possibleNumbers: finalPossibilities.numbers,
-        };
-      });
-    }
-
-    return player.hand as (CardPossibilities | Card)[];
-  })();
+  // Other players may not have every card entered yet; I never do (my hand only shrinks at the end)
+  const emptySlots = player.isMe ? 0 : Math.max(handSize - hand.length, 0);
+  const recentClues = player.cluesReceived.slice(-6).reverse();
+  const olderClues = player.cluesReceived.length - recentClues.length;
 
   return (
-    <div className="space-y-4">
-      {/* Section Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-white font-bold text-lg">
-          {isMyHand ? '🙈 My Hand (Unknown)' : `👁️ ${player.name}'s Hand`}
+    <section id={`hand-section-${player.id}`} aria-labelledby={`hand-${player.id}`} className="scroll-mt-20 space-y-3">
+      <div className="flex items-center gap-2">
+        <h2 id={`hand-${player.id}`} className="text-lg font-semibold tracking-tight [font-stretch:92%]">
+          {player.isMe ? 'Your hand' : player.name}
         </h2>
+        {player.isMe && <span className="text-sm text-ink-3">{player.name}</span>}
 
-        {/* Controls (only for my hand) */}
-        {isMyHand && player.isMe && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleToggleDeductions}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                gameState.settings.showDeductions
-                  ? 'bg-purple-500 text-white'
-                  : 'bg-white/20 text-white/70'
-              }`}
-            >
-              🧠 {gameState.settings.showDeductions ? 'ON' : 'OFF'}
+        <div className="ml-auto flex items-center">
+          {player.isMe ? (
+            <button onClick={onOpenDeductions} className={headerButton}>
+              <Icon name="notes" size={16} />
+              Deductions
             </button>
-            {gameState.settings.showDeductions && (
+          ) : (
+            <>
               <button
-                onClick={() => setShowDeductionModal(true)}
-                className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-semibold transition-all active:scale-95"
+                onClick={() => setTheirView(v => !v)}
+                aria-pressed={theirView}
+                className={`${headerButton} ${theirView ? 'bg-ink text-mat hover:bg-white hover:text-mat' : ''}`}
               >
-                Manage
+                <Icon name="eye" size={16} />
+                Their view
               </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Cards - Horizontal Scroll */}
-      <div className="relative">
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
-          {displayHand.map((card, index) => {
-            // Check if this is a placeholder card (only show reorder buttons for actual cards)
-            const isPlaceholder = index >= player.hand.length;
-
-            return (
-              <div key={'id' in card ? card.id : `${(card as Card).color}-${(card as Card).number}-${index}`} className="flex-shrink-0 snap-center">
-                <div className="relative">
-                  {/* Reorder buttons - only for actual cards, not placeholders */}
-                  {!isPlaceholder ? (
-                    <div className="flex gap-1 mb-1 justify-center">
-                      <button
-                        onClick={() => handleMoveCard(index, 'left')}
-                        disabled={index === 0}
-                        className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
-                          index === 0
-                            ? 'bg-white/10 text-white/30 cursor-not-allowed'
-                            : 'bg-white/20 hover:bg-white/30 text-white active:scale-95'
-                        }`}
-                      >
-                        ←
-                      </button>
-                      <button
-                        onClick={() => handleMoveCard(index, 'right')}
-                        disabled={index === player.hand.length - 1}
-                        className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
-                          index === player.hand.length - 1
-                            ? 'bg-white/10 text-white/30 cursor-not-allowed'
-                            : 'bg-white/20 hover:bg-white/30 text-white active:scale-95'
-                        }`}
-                      >
-                        →
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="h-[28px] mb-1" />
-                  )}
-
-                  <CardDisplay
-                    card={card}
-                    position={index}
-                    isMyHand={isMyHand}
-                    showKnowledge={showKnowledge}
-                    gameState={gameState}
-                    // Action buttons for play/discard
-                    showActionButtons={true}
-                    onPlay={handlePlay}
-                    onDiscard={handleDiscard}
-                    // Selection for hints (enabled for all players)
-                    isSelected={selectedPositions.includes(index)}
-                    onToggleSelect={handleToggleSelect}
-                  />
-                </div>
-              </div>
-            );
-          })}
+              <button onClick={onEditCards} aria-label={`Edit ${player.name}'s cards`} className={`${headerButton} px-2.5`}>
+                <Icon name="pencil" size={16} />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Hint Control Panel (for all players with selections) */}
-      {selectedPositions.length > 0 && (
-        <HintControlPanel
-          selectedPositions={selectedPositions}
-          playerName={isMyHand ? 'Me' : player.name}
-          hintTokens={gameState.hintTokens}
-          onClearSelection={() => setSelectedPositions([])}
-          onSubmit={handleGiveHint}
-        />
-      )}
+      <ol
+        className="grid gap-2 sm:gap-3"
+        style={{ gridTemplateColumns: `repeat(${handSize}, minmax(0, 1fr))` }}
+      >
+        {hand.map((card, index) => {
+          const selected = selectedCardIds.includes(card.id);
+          const known = knowledge?.[index];
+          const safePlay = known && settings.showSafeToPlay && isSafeToPlay(known, fireworks);
+          const safeDiscard =
+            known && !safePlay && settings.showSafeToDiscard && isSafeToDiscard(known, fireworks, discardPile);
 
-      {/* Clue History (always show for my hand, or when viewing knowledge) */}
-      {(isMyHand || showKnowledge) && player.cluesReceived.length > 0 && (
-        <div className="bg-white/5 rounded-xl p-3 space-y-2">
-          <h3 className="text-white/70 font-semibold text-xs uppercase">Clues Received</h3>
-          <div className="space-y-1">
-            {player.cluesReceived.slice(-3).map((clue) => {
-              // Find which current positions match the card IDs from the clue
-              const positions = clue.cardIds
-                .map(cardId => player.hand.findIndex(c => c.id === cardId))
-                .filter(pos => pos !== -1)
-                .map(pos => pos + 1);
+          return (
+            <li key={card.id} className="flex flex-col items-center gap-1.5">
+              <button
+                onClick={() => onToggleCard(card.id)}
+                aria-pressed={selected}
+                aria-label={`Slot ${index + 1}${selected ? ', selected' : ''}`}
+                className={`relative w-full rounded-[10%/6%] transition-transform duration-200 ease-out ${
+                  selected ? '-translate-y-2 ring-2 ring-ink ring-offset-[3px] ring-offset-mat' : 'active:scale-[0.97]'
+                }`}
+              >
+                {known ? (
+                  <KnowledgeCard possibleColors={known.possibleColors} possibleNumbers={known.possibleNumbers} />
+                ) : (
+                  <CardFace color={(card as Card).color} number={(card as Card).number} />
+                )}
 
-              return (
-                <div key={clue.id} className="text-white/60 text-xs">
-                  {clue.type === 'color' ? '🎨' : '🔢'} {clue.value}
-                  {positions.length > 0 && ` (cards ${positions.join(', ')})`}
-                </div>
-              );
-            })}
-            {player.cluesReceived.length > 3 && (
-              <div className="text-white/40 text-xs">
-                +{player.cluesReceived.length - 3} more
-              </div>
+                {selected && (
+                  <span className="absolute -top-2 -right-2 flex size-6 items-center justify-center rounded-full bg-ink text-mat shadow-md">
+                    <Icon name="check" size={14} className="[stroke-width:2.5]" />
+                  </span>
+                )}
+
+                {(safePlay || safeDiscard) && (
+                  <span className="absolute -bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-full bg-ink px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-mat uppercase shadow-md">
+                    <Icon name={safePlay ? 'play' : 'discard'} size={10} className="[stroke-width:2.5]" />
+                    {safePlay ? 'Play' : 'Trash'}
+                  </span>
+                )}
+              </button>
+              <span className={`text-xs font-semibold ${selected ? 'text-ink' : 'text-ink-3'}`}>{index + 1}</span>
+            </li>
+          );
+        })}
+
+        {Array.from({ length: emptySlots }, (_, i) => (
+          <li key={`empty-${i}`} className="flex flex-col items-center gap-1.5">
+            <button
+              onClick={onEditCards}
+              aria-label={`Enter ${player.name}'s card for slot ${hand.length + i + 1}`}
+              className="w-full transition-transform active:scale-[0.97]"
+            >
+              <EmptySlot label="Add card" />
+            </button>
+            <span className="text-xs font-semibold text-ink-3">{hand.length + i + 1}</span>
+          </li>
+        ))}
+      </ol>
+
+      {player.cluesReceived.length > 0 && (
+        <div className="flex items-center gap-2">
+          <span className="shrink-0 text-xs font-medium text-ink-3">Clues</span>
+          <ul className="scrollbar-hide flex gap-1.5 overflow-x-auto" aria-label={`Clues ${player.isMe ? 'you' : player.name} received, newest first`}>
+            {recentClues.map(clue => (
+              <ClueChip key={clue.id} clue={clue} hand={hand} />
+            ))}
+            {olderClues > 0 && (
+              <li className="flex shrink-0 items-center px-1 text-[13px] text-ink-3">+{olderClues} earlier</li>
             )}
-          </div>
+          </ul>
         </div>
       )}
 
-      {/* Reveal Card Modal */}
-      {showRevealModal && revealAction && (
-        <RevealCardModal
-          playerId={player.id}
-          position={revealAction.position}
-          actionType={revealAction.type}
-          gameState={gameState}
-          onClose={() => setShowRevealModal(false)}
-          onUpdateGame={onUpdateGame}
-        />
+      {theirView && !player.isMe && (
+        <p className="text-xs text-ink-2">
+          Showing what {player.name} knows from the clues they&apos;ve received.
+        </p>
       )}
-
-      {/* Deduction Modal */}
-      {showDeductionModal && (
-        <DeductionModal
-          gameState={gameState}
-          onClose={() => setShowDeductionModal(false)}
-          onUpdateGame={onUpdateGame}
-        />
-      )}
-    </div>
+    </section>
   );
 }
+
