@@ -87,7 +87,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
           <fieldset>
             <legend className="mb-1 text-sm font-semibold text-ink">Names, in turn order</legend>
             <p className="mb-3 text-[13px] text-ink-2">Mark which one is you.</p>
-            <ol className="space-y-2">
+            <ol role="radiogroup" aria-label="Which player are you" className="space-y-2">
               {playerNames.map((name, index) => {
                 const isMe = myPlayerIndex === index;
                 return (

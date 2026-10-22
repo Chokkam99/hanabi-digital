@@ -25,13 +25,35 @@ export default function Sheet({ title, description, onClose, children, footer }:
   });
 
   useEffect(() => {
+    // Remember what opened the sheet so focus can go back there when it closes
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
     // Move focus into the sheet so keyboard and screen reader users land in it
     const panel = panelRef.current;
-    const firstControl = panel?.querySelector<HTMLElement>('button:not([disabled]), input, [tabindex="0"]');
-    (firstControl ?? panel)?.focus({ preventScroll: true });
+    const focusables = () =>
+      Array.from(panel?.querySelectorAll<HTMLElement>('button:not([disabled]), input, [tabindex="0"]') ?? []);
+    (focusables()[0] ?? panel)?.focus({ preventScroll: true });
 
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCloseRef.current?.();
+      if (e.key === 'Escape') {
+        onCloseRef.current?.();
+        return;
+      }
+      // Keep Tab inside the sheet; the table behind it isn't reachable while it's open
+      if (e.key === 'Tab') {
+        const items = focusables();
+        if (items.length === 0) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        const inside = panel?.contains(document.activeElement);
+        if (e.shiftKey && (document.activeElement === first || !inside)) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && (document.activeElement === last || !inside)) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener('keydown', handleKey);
 
@@ -42,6 +64,7 @@ export default function Sheet({ title, description, onClose, children, footer }:
     return () => {
       window.removeEventListener('keydown', handleKey);
       document.body.style.overflow = previousOverflow;
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
     };
   }, []);
 

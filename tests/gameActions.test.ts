@@ -126,14 +126,45 @@ describe('playCard / discardCard', () => {
     assert.equal(perfect.deckCount, start.deckCount);
   });
 
-  test('in focus mode the game never ends, so the play still draws', () => {
+  test('in focus mode the game never ends; the draw waits at the left instead of prompting', () => {
     const start = newGame(3);
     const game = { ...start, strikeTokens: 2, settings: { ...start.settings, focusMode: true } };
 
     const next = playCard(game, game.players[1].id, 1);
 
     assert.equal(next.isGameOver, false);
-    assert.deepEqual(next.pendingCardInput, { playerId: game.players[1].id, position: 0 });
+    assert.equal(next.pendingCardInput, undefined, 'Focus mode skips card entry');
+    assert.equal(next.players[1].cardsToEnter, 1);
+    assert.equal(next.deckCount, game.deckCount - 1);
+  });
+
+  test("another player's draw is counted until it's entered; an empty deck counts a missed draw", () => {
+    const start = newGame(3);
+    const alice = start.players[1];
+
+    const drew = discardCard({ ...start, hintTokens: 4 }, alice.id, 0);
+    assert.equal(drew.players[1].cardsToEnter, 1);
+    assert.equal(drew.players[1].missedDraws, undefined);
+
+    const deckOut = discardCard({ ...start, hintTokens: 4, deckCount: 0 }, alice.id, 0);
+    assert.equal(deckOut.pendingCardInput, undefined);
+    assert.equal(deckOut.players[1].cardsToEnter, undefined);
+    assert.equal(deckOut.players[1].missedDraws, 1, 'the hand is legitimately one card short');
+  });
+
+  test('after leaving Focus mode at 3 strikes, only a misplay ends the game', () => {
+    const start = newGame(3);
+    const atThree = { ...start, strikeTokens: 3 };
+    const alice = atThree.players[1];
+
+    // Alice's slot 1 is a yellow 1, which fits the empty yellow firework
+    const fits = playCard(atThree, alice.id, 0);
+    assert.equal(fits.fireworks.yellow, 1);
+    assert.equal(fits.isGameOver, false);
+
+    // Her slot 2 is a green 2, which doesn't fit
+    const misplay = playCard(atThree, alice.id, 1);
+    assert.equal(misplay.isGameOver, true);
   });
 });
 

@@ -54,7 +54,8 @@ export default function Home() {
   const handleUndo = () => {
     if (undoStack.length > 0) {
       const previousState = undoStack[undoStack.length - 1];
-      setGameState(previousState);
+      // Undo steps back game actions; settings are preferences, so the current ones stay
+      setGameState(gameState ? { ...previousState, settings: gameState.settings } : previousState);
       setUndoStack(prev => prev.slice(0, -1));
     }
   };

@@ -9,20 +9,17 @@ import Button from './ui/Button';
 
 interface NewCardModalProps {
   gameState: GameState;
+  playerId: string;
   onUpdateGame: (newState: GameState) => void;
-  // Lets the user back out of the play/discard that triggered this modal
-  onUndo?: () => void;
-  // Dismiss without entering a card (it can be added later with Edit Cards)
-  onSkip: () => void;
+  // The other footer action: Undo the play that drew it, put it off, or close (when opened from its slot)
+  secondary: { label: string; icon?: 'undo'; onClick: () => void };
 }
 
-export default function NewCardModal({ gameState, onUpdateGame, onUndo, onSkip }: NewCardModalProps) {
+export default function NewCardModal({ gameState, playerId, onUpdateGame, secondary }: NewCardModalProps) {
   const [selectedColor, setSelectedColor] = useState<Color | null>(null);
   const [selectedNumber, setSelectedNumber] = useState<CardNumber | null>(null);
 
-  if (!gameState.pendingCardInput) return null;
-
-  const player = gameState.players.find(p => p.id === gameState.pendingCardInput!.playerId);
+  const player = gameState.players.find(p => p.id === playerId);
   if (!player) return null;
 
   const handleSubmit = () => {
@@ -41,6 +38,7 @@ export default function NewCardModal({ gameState, onUpdateGame, onUndo, onSkip }
         return {
           ...p,
           hand: [newCard, ...(p.hand as Card[])],
+          cardsToEnter: Math.max((p.cardsToEnter ?? 1) - 1, 0),
         };
       }
       return p;
@@ -56,12 +54,11 @@ export default function NewCardModal({ gameState, onUpdateGame, onUndo, onSkip }
   return (
     <Sheet
       title={`${player.name} drew a card`}
-      description="What is it? It goes into slot 1."
+      description={`What is it? It goes into slot ${Math.max(player.cardsToEnter ?? 1, 1)}.`}
       footer={
         <>
-          {/* Undo history isn't saved, so after a reload offer a way out instead */}
-          <Button className="flex-1" icon={onUndo ? 'undo' : undefined} onClick={onUndo ?? onSkip}>
-            {onUndo ? 'Undo' : 'Add later'}
+          <Button className="flex-1" icon={secondary.icon} onClick={secondary.onClick}>
+            {secondary.label}
           </Button>
           <Button variant="primary" className="flex-[2]" disabled={!selectedColor || !selectedNumber} onClick={handleSubmit}>
             Add card

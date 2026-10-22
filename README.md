@@ -18,7 +18,7 @@ Everything is saved in the browser's local storage, so a refresh or a locked pho
    - **Clue:** pick the color or number. For other players the app selects every matching card for you, as the rules require. For your own hand, select the cards that were pointed at first.
    - **Play / Discard:** with one card selected. For your own card you enter what it turned out to be. When someone else draws, you're asked for their new card (it goes into slot 1).
    - **Move:** reorder a card left or right.
-4. Your hand shows what you know: unknown cards list every color and number still possible, take on their color or number as clues land, and turn face-up once fully known. **Their view** shows the same for another player. **Deductions** rules out cards whose every copy is visible elsewhere, and the menu can highlight cards that are safe to play or discard.
+4. Your hand shows what you know: unknown cards list every color and number still possible, take on their color or number as clues land, and turn face-up once fully known. **Their view** shows the same for another player. Your cards also rule out, automatically, any card whose every copy is visible elsewhere (other hands, discards, fireworks, and your own cards you already know); **Deductions** shows why and lets you rule out more yourself. The menu can highlight cards that are safe to play or discard.
 
 Cards use the real deck's five colors, so the table on screen matches the one in front of you. Each suit also carries a small crest (plum, chrysanthemum, pine, wave, moon) as a second cue.
 

@@ -13,14 +13,16 @@ interface CardFaceProps {
   color: Color;
   number: CardNumber;
   className?: string;
+  onAnimationEnd?: () => void;
 }
 
 /**
  * A known card, printed like a hanafuda face: suit field, numeral, crest
  */
-export function CardFace({ color, number, className = '' }: CardFaceProps) {
+export function CardFace({ color, number, className = '', onAnimationEnd }: CardFaceProps) {
   return (
     <div
+      onAnimationEnd={onAnimationEnd}
       role="img"
       aria-label={`${SUIT_NAMES[color]} ${number}`}
       className={`${SLAB} ${SUIT_BG[color]} ${SUIT_ON[color]} ${STOCK} ${className}`}
@@ -159,6 +161,8 @@ export function KnowledgeCard({ possibleColors, possibleNumbers }: KnowledgeCard
         color={[...possibleColors][0]}
         number={[...possibleNumbers][0]}
         className={flipping ? 'animate-flip-in' : ''}
+        // Drop the class once it has played: a moved DOM node would otherwise replay it
+        onAnimationEnd={() => setFlipping(false)}
       />
     );
   }

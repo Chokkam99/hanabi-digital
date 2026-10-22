@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Player, GameState, CardPossibilities, Card, Clue, Color, CardNumber } from '@/types/game';
-import { computePlayerKnowledge, getFinalPossibilities, isSafeToPlay, isSafeToDiscard } from '@/utils/inference';
+import { computePlayerKnowledge, getMyKnowledge, isSafeToPlay, isSafeToDiscard } from '@/utils/inference';
 import { CardFace, EmptySlot, KnowledgeCard } from './Card';
 import SuitEmblem, { SUIT_TEXT } from './SuitEmblem';
 import Icon from './ui/Icon';
@@ -14,18 +14,20 @@ interface PlayerHandProps {
   selectedCardIds: string[];
   onToggleCard: (cardId: string) => void;
   onEditCards?: () => void;
+  // Opens the sheet for a drawn card that's waiting to be entered
+  onEnterDrawnCard?: () => void;
   onOpenDeductions?: () => void;
 }
 
 const headerButton =
   'flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-lacquer-2 hover:text-ink';
 
-function ClueChip({ clue, hand }: { clue: Clue; hand: (Card | CardPossibilities)[] }) {
+function ClueChip({ clue, hand, slotOffset }: { clue: Clue; hand: (Card | CardPossibilities)[]; slotOffset: number }) {
   // Slots the clue's touched cards occupy now (cards move as they're played and drawn)
   const slots = clue.cardIds
     .map(id => hand.findIndex(c => c.id === id))
     .filter(pos => pos !== -1)
-    .map(pos => pos + 1);
+    .map(pos => slotOffset + pos + 1);
 
   return (
     <li className="flex shrink-0 items-center gap-1.5 rounded-full border border-rule bg-lacquer px-2.5 py-1 text-[13px]">
@@ -56,6 +58,7 @@ export default function PlayerHand({
   selectedCardIds,
   onToggleCard,
   onEditCards,
+  onEnterDrawnCard,
   onOpenDeductions,
 }: PlayerHandProps) {
   // For other players: show their cards as they see them (from the clues they've had)
@@ -64,17 +67,18 @@ export default function PlayerHand({
 
   const hand = player.hand as (Card | CardPossibilities)[];
   const knowledge: CardPossibilities[] | null = player.isMe
-    ? (player.hand as CardPossibilities[]).map(card => {
-        if (!settings.showDeductions) return card;
-        const { colors, numbers } = getFinalPossibilities(card);
-        return { ...card, possibleColors: colors, possibleNumbers: numbers };
-      })
+    ? getMyKnowledge(gameState).hand
     : theirView
     ? computePlayerKnowledge(player.hand as Card[], player.cluesReceived)
     : null;
 
-  // Other players may not have every card entered yet; I never do (my hand only shrinks at the end)
-  const emptySlots = player.isMe ? 0 : Math.max(handSize - hand.length, 0);
+  // Other players' hands can have cards that aren't entered yet (my hand never does):
+  // drawn cards waiting at the left, and cards from a partial deal at the right.
+  // A hand that shrank because the deck ran out has no empty slots for those.
+  const drawnSlots = player.isMe ? 0 : player.cardsToEnter ?? 0;
+  const dealSlots = player.isMe
+    ? 0
+    : Math.max(handSize - (player.missedDraws ?? 0) - hand.length - drawnSlots, 0);
   const recentClues = player.cluesReceived.slice(-6).reverse();
   const olderClues = player.cluesReceived.length - recentClues.length;
 
@@ -114,7 +118,21 @@ export default function PlayerHand({
         className="grid gap-2 sm:gap-3"
         style={{ gridTemplateColumns: `repeat(${handSize}, minmax(0, 1fr))` }}
       >
+        {Array.from({ length: drawnSlots }, (_, i) => (
+          <li key={`drawn-${i}`} className="flex flex-col items-center gap-1.5">
+            <button
+              onClick={onEnterDrawnCard}
+              aria-label={`Enter the card ${player.name} drew`}
+              className="w-full transition-transform active:scale-[0.97]"
+            >
+              <EmptySlot label="New card" />
+            </button>
+            <span className="text-xs font-semibold text-ink-3">{i + 1}</span>
+          </li>
+        ))}
+
         {hand.map((card, index) => {
+          const slot = drawnSlots + index + 1;
           const selected = selectedCardIds.includes(card.id);
           const known = knowledge?.[index];
           const safePlay = known && settings.showSafeToPlay && isSafeToPlay(known, fireworks);
@@ -126,7 +144,7 @@ export default function PlayerHand({
               <button
                 onClick={() => onToggleCard(card.id)}
                 aria-pressed={selected}
-                aria-label={`Slot ${index + 1}${selected ? ', selected' : ''}`}
+                aria-label={`Slot ${slot}${selected ? ', selected' : ''}`}
                 className={`relative w-full rounded-[10%/6%] transition-transform duration-200 ease-out ${
                   selected ? '-translate-y-2 ring-2 ring-ink ring-offset-[3px] ring-offset-mat' : 'active:scale-[0.97]'
                 }`}
@@ -150,21 +168,21 @@ export default function PlayerHand({
                   </span>
                 )}
               </button>
-              <span className={`text-xs font-semibold ${selected ? 'text-ink' : 'text-ink-3'}`}>{index + 1}</span>
+              <span className={`text-xs font-semibold ${selected ? 'text-ink' : 'text-ink-3'}`}>{slot}</span>
             </li>
           );
         })}
 
-        {Array.from({ length: emptySlots }, (_, i) => (
-          <li key={`empty-${i}`} className="flex flex-col items-center gap-1.5">
+        {Array.from({ length: dealSlots }, (_, i) => (
+          <li key={`deal-${i}`} className="flex flex-col items-center gap-1.5">
             <button
               onClick={onEditCards}
-              aria-label={`Enter ${player.name}'s card for slot ${hand.length + i + 1}`}
+              aria-label={`Add a card to ${player.name}'s hand`}
               className="w-full transition-transform active:scale-[0.97]"
             >
               <EmptySlot label="Add card" />
             </button>
-            <span className="text-xs font-semibold text-ink-3">{hand.length + i + 1}</span>
+            <span className="text-xs font-semibold text-ink-3">{drawnSlots + hand.length + i + 1}</span>
           </li>
         ))}
       </ol>
@@ -174,7 +192,7 @@ export default function PlayerHand({
           <span className="shrink-0 text-xs font-medium text-ink-3">Clues</span>
           <ul className="scrollbar-hide flex gap-1.5 overflow-x-auto" aria-label={`Clues ${player.isMe ? 'you' : player.name} received, newest first`}>
             {recentClues.map(clue => (
-              <ClueChip key={clue.id} clue={clue} hand={hand} />
+              <ClueChip key={clue.id} clue={clue} hand={hand} slotOffset={drawnSlots} />
             ))}
             {olderClues > 0 && (
               <li className="flex shrink-0 items-center px-1 text-[13px] text-ink-3">+{olderClues} earlier</li>

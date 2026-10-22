@@ -1,6 +1,6 @@
 // Inference engine for Hanabi card deduction
 
-import { CardPossibilities, Clue, Color, CardNumber, Fireworks, Card, COLORS, NUMBERS, getCopiesPerCard } from '@/types/game';
+import { CardPossibilities, Clue, Color, CardNumber, Fireworks, Card, GameState, COLORS, NUMBERS, getCopiesPerCard } from '@/types/game';
 
 /**
  * Apply a clue to a player's hand, updating all card possibilities
@@ -194,100 +194,143 @@ export function computePlayerKnowledge(
 }
 
 /**
- * Get the final possibilities for a card after applying manual exclusions
+ * Options ruled out for one card, by color and by number
  */
-export function getFinalPossibilities(card: CardPossibilities): {
+export interface Exclusions {
   colors: Set<Color>;
   numbers: Set<CardNumber>;
-} {
-  const colors = new Set(card.possibleColors);
-  const numbers = new Set(card.possibleNumbers);
+}
 
-  // Apply manual exclusions if they exist
-  if (card.manualExclusions) {
-    card.manualExclusions.colors.forEach(color => colors.delete(color));
-    card.manualExclusions.numbers.forEach(number => numbers.delete(number));
-  }
-
-  // A later clue can contradict an earlier manual exclusion; trust the clue
-  return {
-    colors: colors.size > 0 ? colors : new Set(card.possibleColors),
-    numbers: numbers.size > 0 ? numbers : new Set(card.possibleNumbers),
-  };
+function without<T>(options: Set<T>, excluded: Iterable<T> | undefined): Set<T> {
+  const remaining = new Set(options);
+  for (const value of excluded ?? []) remaining.delete(value);
+  return remaining;
 }
 
 /**
- * Auto-deduce impossibilities based on visible cards (count elimination)
- * Visible cards are other players' hands and the discard pile; cards already
- * played on the fireworks are counted too
- * Returns updated hand with auto-detected exclusions added to manual exclusions
+ * Get the final possibilities for a card: what its clues allow, minus the options
+ * ruled out by hand, minus the ones ruled out automatically (every copy visible)
  */
-export function applyAutoDeductions(
+export function getFinalPossibilities(card: CardPossibilities, autoExclusions?: Exclusions): {
+  colors: Set<Color>;
+  numbers: Set<CardNumber>;
+} {
+  // A later clue can contradict an earlier manual exclusion; trust the clue
+  const manualColors = without(card.possibleColors, card.manualExclusions?.colors);
+  const manualNumbers = without(card.possibleNumbers, card.manualExclusions?.numbers);
+  const colors = manualColors.size > 0 ? manualColors : new Set(card.possibleColors);
+  const numbers = manualNumbers.size > 0 ? manualNumbers : new Set(card.possibleNumbers);
+
+  const autoColors = without(colors, autoExclusions?.colors);
+  const autoNumbers = without(numbers, autoExclusions?.numbers);
+  return {
+    colors: autoColors.size > 0 ? autoColors : colors,
+    numbers: autoNumbers.size > 0 ? autoNumbers : numbers,
+  };
+}
+
+const comboKey = (color: Color, number: CardNumber) => `${color}-${number}`;
+
+/**
+ * Count elimination: rule out options whose every copy is visible somewhere else.
+ * Visible copies are other players' hands, the discard pile, the cards on the fireworks,
+ * and my own cards that are already fully known. Pure and recomputed from the table each
+ * time, so it never goes stale when a hand is corrected or a card is drawn.
+ */
+export function computeAutoExclusions(
   myHand: CardPossibilities[],
   visibleCards: Card[],
   fireworks: Fireworks
-): CardPossibilities[] {
-  // Count visible cards by color and number
-  const visibleCounts = new Map<string, number>();
+): Exclusions[] {
+  const tableCounts = new Map<string, number>();
+  const addCopy = (counts: Map<string, number>, key: string) => counts.set(key, (counts.get(key) ?? 0) + 1);
 
   for (const visibleCard of visibleCards) {
-    const key = `${visibleCard.color}-${visibleCard.number}`;
-    visibleCounts.set(key, (visibleCounts.get(key) || 0) + 1);
+    addCopy(tableCounts, comboKey(visibleCard.color, visibleCard.number));
   }
-
   // Each firework holds one copy of every number up to its current level
   for (const color of COLORS) {
     for (let number = 1; number <= fireworks[color]; number++) {
-      const key = `${color}-${number}`;
-      visibleCounts.set(key, (visibleCounts.get(key) || 0) + 1);
+      addCopy(tableCounts, comboKey(color, number as CardNumber));
     }
   }
 
-  return myHand.map(card => {
-    const newCard = { ...card };
+  const auto: Exclusions[] = myHand.map(() => ({ colors: new Set(), numbers: new Set() }));
 
-    // Create new sets to avoid mutation
-    newCard.manualExclusions = {
-      colors: new Set(card.manualExclusions?.colors),
-      numbers: new Set(card.manualExclusions?.numbers),
-    };
+  // A card that becomes fully known is one more visible copy for the rest of my hand,
+  // which can pin down another card, so repeat until nothing changes
+  for (let pass = 0; pass <= myHand.length; pass++) {
+    const current = myHand.map((card, i) => getFinalPossibilities(card, auto[i]));
+    const knownKeys = current.map(({ colors, numbers }) =>
+      colors.size === 1 && numbers.size === 1 ? comboKey([...colors][0], [...numbers][0]) : null
+    );
+    let changed = false;
 
-    // First, identify all impossible combinations
-    const impossibleCombinations = new Set<string>();
+    current.forEach(({ colors, numbers }, i) => {
+      const counts = new Map(tableCounts);
+      knownKeys.forEach((key, j) => {
+        if (key && j !== i) addCopy(counts, key);
+      });
+      const impossible = (color: Color, number: CardNumber) =>
+        (counts.get(comboKey(color, number)) ?? 0) >= getCopiesPerCard(number);
 
-    for (const color of card.possibleColors) {
-      for (const number of card.possibleNumbers) {
-        const key = `${color}-${number}`;
+      // A color is out only if it's impossible with every number still open (and vice versa)
+      const deadColors = [...colors].filter(color => [...numbers].every(number => impossible(color, number)));
+      const deadNumbers = [...numbers].filter(number => [...colors].every(color => impossible(color, number)));
 
-        // If all copies are visible, this combination is impossible
-        if ((visibleCounts.get(key) || 0) >= getCopiesPerCard(number)) {
-          impossibleCombinations.add(key);
+      // If every option looks impossible, the table was entered inconsistently: rule nothing out
+      if (deadColors.length < colors.size) {
+        for (const color of deadColors) {
+          if (!auto[i].colors.has(color)) {
+            auto[i].colors.add(color);
+            changed = true;
+          }
         }
       }
-    }
-
-    // Only exclude a color if ALL numbers with that color are impossible
-    for (const color of card.possibleColors) {
-      const allNumbersImpossible = Array.from(card.possibleNumbers).every(number =>
-        impossibleCombinations.has(`${color}-${number}`)
-      );
-
-      if (allNumbersImpossible && card.possibleColors.size > 1) {
-        newCard.manualExclusions.colors.add(color);
+      if (deadNumbers.length < numbers.size) {
+        for (const number of deadNumbers) {
+          if (!auto[i].numbers.has(number)) {
+            auto[i].numbers.add(number);
+            changed = true;
+          }
+        }
       }
-    }
+    });
 
-    // Only exclude a number if ALL colors with that number are impossible
-    for (const number of card.possibleNumbers) {
-      const allColorsImpossible = Array.from(card.possibleColors).every(color =>
-        impossibleCombinations.has(`${color}-${number}`)
-      );
+    if (!changed) break;
+  }
 
-      if (allColorsImpossible && card.possibleNumbers.size > 1) {
-        newCard.manualExclusions.numbers.add(number);
-      }
-    }
+  return auto;
+}
 
-    return newCard;
-  });
+/**
+ * The cards I can see: every other player's hand and the discard pile
+ */
+export function getVisibleCards(gameState: GameState): Card[] {
+  return [
+    ...gameState.discardPile,
+    ...gameState.players.filter(p => !p.isMe).flatMap(p => p.hand as Card[]),
+  ];
+}
+
+/**
+ * My hand as the app shows it. With deductions on, each card's options are narrowed by
+ * what I've ruled out by hand and by count elimination; with them off, clues only.
+ */
+export function getMyKnowledge(gameState: GameState): { hand: CardPossibilities[]; auto: Exclusions[] } {
+  const me = gameState.players.find(p => p.isMe);
+  const hand = (me?.hand ?? []) as CardPossibilities[];
+  const auto = computeAutoExclusions(hand, getVisibleCards(gameState), gameState.fireworks);
+
+  if (!gameState.settings.showDeductions) {
+    return { hand, auto };
+  }
+
+  return {
+    hand: hand.map((card, i) => {
+      const { colors, numbers } = getFinalPossibilities(card, auto[i]);
+      return { ...card, possibleColors: colors, possibleNumbers: numbers };
+    }),
+    auto,
+  };
 }

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { GameState, CardPossibilities, Color, CardNumber, COLORS, NUMBERS, Card } from '@/types/game';
-import { applyAutoDeductions, getFinalPossibilities } from '@/utils/inference';
+import { GameState, CardPossibilities, Color, CardNumber, COLORS, NUMBERS } from '@/types/game';
+import { computeAutoExclusions, getFinalPossibilities, getVisibleCards } from '@/utils/inference';
 import { KnowledgeCard } from './Card';
 import SuitEmblem, { SUIT_NAMES, SUIT_TEXT } from './SuitEmblem';
 import Sheet from './ui/Sheet';
@@ -14,7 +14,26 @@ interface DeductionModalProps {
   onUpdateGame: (newState: GameState) => void;
 }
 
+// Why an option is (or isn't) still possible
+type OptionState = 'open' | 'clue' | 'seen' | 'manual';
+
 const optionBase = 'relative flex size-10 items-center justify-center rounded-lg border transition-colors duration-150';
+
+const optionStyles: Record<OptionState, string> = {
+  open: 'border-rule bg-lacquer-2 hover:bg-lacquer-3',
+  // Ruled out by clues or by count elimination: fixed, so not tappable
+  clue: 'cursor-not-allowed border-transparent text-ink-3',
+  seen: 'cursor-not-allowed border-dotted border-ink-3 text-ink-3',
+  // Ruled out by hand: tap again to bring it back
+  manual: 'border-dashed border-ink-3 text-ink-3 hover:bg-lacquer-2',
+};
+
+const optionNotes: Record<OptionState, string> = {
+  open: '',
+  clue: ', ruled out by clues',
+  seen: ', ruled out: every copy is visible elsewhere',
+  manual: ', ruled out by you',
+};
 
 // The diagonal strike used for ruled-out crests (matches the card backs)
 function Strike() {
@@ -41,7 +60,23 @@ export default function DeductionModal({ gameState, onClose, onUpdateGame }: Ded
     return null;
   }
 
-  // Toggle exclusion for a specific card
+  // Count elimination is live: it follows the table and the exclusions being edited here
+  const auto = computeAutoExclusions(editedHand, getVisibleCards(gameState), gameState.fireworks);
+
+  const stateOf = (card: CardPossibilities, index: number, type: 'color' | 'number', value: Color | CardNumber): OptionState => {
+    if (type === 'color') {
+      const color = value as Color;
+      if (!card.possibleColors.has(color)) return 'clue';
+      if (card.manualExclusions?.colors.has(color)) return 'manual';
+      return auto[index].colors.has(color) ? 'seen' : 'open';
+    }
+    const number = value as CardNumber;
+    if (!card.possibleNumbers.has(number)) return 'clue';
+    if (card.manualExclusions?.numbers.has(number)) return 'manual';
+    return auto[index].numbers.has(number) ? 'seen' : 'open';
+  };
+
+  // Toggle a manual exclusion for a specific card
   const toggleExclusion = (cardIndex: number, type: 'color' | 'number', value: Color | CardNumber) => {
     setEditedHand(prev => {
       const newHand = [...prev];
@@ -52,9 +87,8 @@ export default function DeductionModal({ gameState, onClose, onUpdateGame }: Ded
         numbers: new Set(card.manualExclusions?.numbers),
       };
 
-      // Exclusions left over from before a newer clue may not be in the clue
-      // possibilities any more, so count what's actually left
-      const remaining = getFinalPossibilities(card);
+      // Count what's actually left, after clues, manual and automatic exclusions
+      const remaining = getFinalPossibilities(card, auto[cardIndex]);
 
       if (type === 'color') {
         const colorValue = value as Color;
@@ -80,15 +114,6 @@ export default function DeductionModal({ gameState, onClose, onUpdateGame }: Ded
     });
   };
 
-  // Rule out everything whose copies are all visible: other hands, discards, fireworks
-  const handleAutoDeduce = () => {
-    const visibleCards: Card[] = [
-      ...gameState.discardPile,
-      ...gameState.players.filter(p => !p.isMe).flatMap(p => p.hand as Card[]),
-    ];
-    setEditedHand(applyAutoDeductions(editedHand, visibleCards, gameState.fireworks));
-  };
-
   const handleClearAll = () => {
     setEditedHand(prev =>
       prev.map(card => ({ ...card, manualExclusions: { colors: new Set(), numbers: new Set() } }))
@@ -96,14 +121,14 @@ export default function DeductionModal({ gameState, onClose, onUpdateGame }: Ded
   };
 
   const handleSave = () => {
-    const hasExclusions = editedHand.some(
+    const hasManual = editedHand.some(
       card => (card.manualExclusions?.colors.size ?? 0) + (card.manualExclusions?.numbers.size ?? 0) > 0
     );
     onUpdateGame({
       ...gameState,
       players: gameState.players.map(p => (p.isMe ? { ...p, hand: editedHand } : p)),
-      // Deductions only matter if they show on the cards
-      settings: hasExclusions ? { ...gameState.settings, showDeductions: true } : gameState.settings,
+      // Ruling something out only matters if deductions show on the cards
+      settings: hasManual ? { ...gameState.settings, showDeductions: true } : gameState.settings,
     });
     onClose();
   };
@@ -111,15 +136,12 @@ export default function DeductionModal({ gameState, onClose, onUpdateGame }: Ded
   return (
     <Sheet
       title="Deductions"
-      description="Tap to rule out options clues haven't (dashed). Auto-deduce rules out cards whose every copy is visible elsewhere."
+      description="Options with every copy visible elsewhere are ruled out automatically (dotted). Tap an open option to rule it out yourself (dashed)."
       onClose={onClose}
       footer={
         <>
           <Button variant="ghost" className="px-3" onClick={handleClearAll}>
-            Clear all
-          </Button>
-          <Button className="flex-1" onClick={handleAutoDeduce}>
-            Auto-deduce
+            Clear mine
           </Button>
           <Button variant="primary" className="flex-1" onClick={handleSave}>
             Save
@@ -127,9 +149,15 @@ export default function DeductionModal({ gameState, onClose, onUpdateGame }: Ded
         </>
       }
     >
+      {!gameState.settings.showDeductions && (
+        <p className="mb-3 rounded-lg border border-ink-3 bg-lacquer-2 px-3 py-2 text-[13px] text-ink-2">
+          Deductions are off, so your cards show clues only. Saving anything you rule out here turns them on.
+        </p>
+      )}
+
       <ul className="divide-y divide-rule">
         {editedHand.map((card, index) => {
-          const final = getFinalPossibilities(card);
+          const final = getFinalPossibilities(card, auto[index]);
           return (
             <li key={card.id} className="flex gap-4 py-4 first:pt-1">
               <div className="w-12 shrink-0">
@@ -140,46 +168,34 @@ export default function DeductionModal({ gameState, onClose, onUpdateGame }: Ded
               <div className="min-w-0 flex-1 space-y-2">
                 <div role="group" aria-label={`Slot ${index + 1} suits`} className="flex gap-1.5">
                   {COLORS.map(color => {
-                    const fromClues = card.possibleColors.has(color);
-                    const excluded = card.manualExclusions?.colors.has(color) ?? false;
+                    const state = stateOf(card, index, 'color', color);
                     return (
                       <button
                         key={color}
                         onClick={() => toggleExclusion(index, 'color', color)}
-                        disabled={!fromClues}
-                        aria-label={`${SUIT_NAMES[color]}${!fromClues ? ', ruled out by clues' : excluded ? ', ruled out' : ''}`}
-                        aria-pressed={excluded}
-                        className={`${optionBase} ${
-                          !fromClues
-                            ? 'cursor-not-allowed border-transparent text-ink-3'
-                            : excluded
-                            ? 'border-dashed border-ink-3 text-ink-3 hover:bg-lacquer-2'
-                            : `border-rule bg-lacquer-2 hover:bg-lacquer-3 ${SUIT_TEXT[color]}`
-                        }`}
+                        disabled={state === 'clue' || state === 'seen'}
+                        aria-label={`${SUIT_NAMES[color]}${optionNotes[state]}`}
+                        aria-pressed={state === 'manual'}
+                        className={`${optionBase} ${optionStyles[state]} ${state === 'open' ? SUIT_TEXT[color] : ''}`}
                       >
                         <SuitEmblem color={color} size={20} />
-                        {(!fromClues || excluded) && <Strike />}
+                        {state !== 'open' && <Strike />}
                       </button>
                     );
                   })}
                 </div>
                 <div role="group" aria-label={`Slot ${index + 1} numbers`} className="flex gap-1.5">
                   {NUMBERS.map(num => {
-                    const fromClues = card.possibleNumbers.has(num);
-                    const excluded = card.manualExclusions?.numbers.has(num) ?? false;
+                    const state = stateOf(card, index, 'number', num);
                     return (
                       <button
                         key={num}
                         onClick={() => toggleExclusion(index, 'number', num)}
-                        disabled={!fromClues}
-                        aria-label={`${num}${!fromClues ? ', ruled out by clues' : excluded ? ', ruled out' : ''}`}
-                        aria-pressed={excluded}
-                        className={`${optionBase} text-lg font-extrabold [font-stretch:80%] ${
-                          !fromClues
-                            ? 'cursor-not-allowed border-transparent text-ink-3 line-through'
-                            : excluded
-                            ? 'border-dashed border-ink-3 text-ink-3 line-through hover:bg-lacquer-2'
-                            : 'border-rule bg-lacquer-2 text-ink hover:bg-lacquer-3'
+                        disabled={state === 'clue' || state === 'seen'}
+                        aria-label={`${num}${optionNotes[state]}`}
+                        aria-pressed={state === 'manual'}
+                        className={`${optionBase} text-lg font-extrabold [font-stretch:80%] ${optionStyles[state]} ${
+                          state === 'open' ? 'text-ink' : 'line-through'
                         }`}
                       >
                         {num}

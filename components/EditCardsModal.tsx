@@ -22,6 +22,8 @@ export default function EditCardsModal({ gameState, playerId, onClose, onUpdateG
   const [playerCards, setPlayerCards] = useState<Card[]>(
     player && !player.isMe ? (player.hand as Card[]) : []
   );
+  // Drawn cards not entered yet sit at the left; adding a card fills those first
+  const [cardsToEnter, setCardsToEnter] = useState(player?.cardsToEnter ?? 0);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [selectedColor, setSelectedColor] = useState<Color | null>(null);
   const [selectedNumber, setSelectedNumber] = useState<CardNumber | null>(null);
@@ -31,7 +33,11 @@ export default function EditCardsModal({ gameState, playerId, onClose, onUpdateG
   }
 
   const totalCards = getHandSize(gameState.players.length);
-  const canAdd = playerCards.length < totalCards;
+  // Cards from a partial deal that are still missing, at the right
+  const dealSlots = Math.max(totalCards - (player.missedDraws ?? 0) - playerCards.length - cardsToEnter, 0);
+  const canAdd = cardsToEnter > 0 || dealSlots > 0;
+  // The slot the next added card lands in (1-based, counting waiting drawn cards)
+  const nextSlot = cardsToEnter > 0 ? cardsToEnter : cardsToEnter + playerCards.length + 1;
 
   const resetPicker = () => {
     setEditingIndex(null);
@@ -45,13 +51,19 @@ export default function EditCardsModal({ gameState, playerId, onClose, onUpdateG
       // Update in place, keeping the id so clues it received stay attached
       setPlayerCards(cards => cards.map((card, i) => (i === editingIndex ? { ...card, color, number } : card)));
     } else if (canAdd) {
-      // Fills the next empty slot, left to right
       const newCard: Card = {
         id: `card-${playerId}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         color,
         number,
       };
-      setPlayerCards(cards => [...cards, newCard]);
+      if (cardsToEnter > 0) {
+        // A drawn card: it joins at the left, just after any still-waiting newer draws
+        setPlayerCards(cards => [newCard, ...cards]);
+        setCardsToEnter(n => n - 1);
+      } else {
+        // A missing card from the deal: fills the next empty slot, left to right
+        setPlayerCards(cards => [...cards, newCard]);
+      }
     }
     resetPicker();
   };
@@ -86,18 +98,18 @@ export default function EditCardsModal({ gameState, playerId, onClose, onUpdateG
     onUpdateGame(
       {
         ...gameState,
-        players: gameState.players.map(p => (p.id === playerId ? { ...p, hand: playerCards } : p)),
+        players: gameState.players.map(p => (p.id === playerId ? { ...p, hand: playerCards, cardsToEnter } : p)),
       },
-      false // Don't save card edits to undo history
+      true // Edits are undoable like any other action, so Undo never silently drops them
     );
     onClose();
   };
 
   const hint =
     editingIndex !== null
-      ? `Changing slot ${editingIndex + 1}: tap its new suit or number.`
+      ? `Changing slot ${cardsToEnter + editingIndex + 1}: tap its new suit or number.`
       : canAdd
-      ? `Pick a suit and number to add slot ${playerCards.length + 1}, or tap a card to change it.`
+      ? `Pick a suit and number to add slot ${nextSlot}, or tap a card to change it.`
       : 'Tap a card to change or remove it.';
 
   return (
@@ -117,27 +129,43 @@ export default function EditCardsModal({ gameState, playerId, onClose, onUpdateG
       }
     >
       <ol className="mb-5 grid gap-2" style={{ gridTemplateColumns: `repeat(${totalCards}, minmax(0, 1fr))` }}>
+        {Array.from({ length: cardsToEnter }, (_, i) => (
+          <li key={`drawn-${i}`} className="flex flex-col items-center gap-1">
+            <div
+              className={`w-full max-w-16 ${
+                i + 1 === nextSlot && editingIndex === null ? 'rounded-[10%/6%] ring-2 ring-ink/60 ring-offset-2 ring-offset-lacquer' : ''
+              }`}
+            >
+              <EmptySlot label="New" />
+            </div>
+            <span className="text-xs font-semibold text-ink-2">{i + 1}</span>
+          </li>
+        ))}
         {playerCards.map((card, index) => (
           <li key={card.id} className="flex flex-col items-center gap-1">
             <button
               onClick={() => handleCardClick(index)}
               aria-pressed={editingIndex === index}
-              aria-label={`Slot ${index + 1}`}
+              aria-label={`Slot ${cardsToEnter + index + 1}`}
               className={`w-full max-w-16 rounded-[10%/6%] transition-transform duration-200 ${
                 editingIndex === index ? '-translate-y-1 ring-2 ring-ink ring-offset-2 ring-offset-lacquer' : ''
               }`}
             >
               <CardFace color={card.color} number={card.number} />
             </button>
-            <span className="text-xs font-semibold text-ink-2">{index + 1}</span>
+            <span className="text-xs font-semibold text-ink-2">{cardsToEnter + index + 1}</span>
           </li>
         ))}
-        {Array.from({ length: totalCards - playerCards.length }, (_, i) => (
+        {Array.from({ length: dealSlots }, (_, i) => (
           <li key={`empty-${i}`} className="flex flex-col items-center gap-1">
-            <div className={`w-full max-w-16 ${i === 0 && editingIndex === null ? 'rounded-[10%/6%] ring-2 ring-ink/60 ring-offset-2 ring-offset-lacquer' : ''}`}>
+            <div
+              className={`w-full max-w-16 ${
+                cardsToEnter === 0 && i === 0 && editingIndex === null ? 'rounded-[10%/6%] ring-2 ring-ink/60 ring-offset-2 ring-offset-lacquer' : ''
+              }`}
+            >
               <EmptySlot />
             </div>
-            <span className="text-xs font-semibold text-ink-2">{playerCards.length + i + 1}</span>
+            <span className="text-xs font-semibold text-ink-2">{cardsToEnter + playerCards.length + i + 1}</span>
           </li>
         ))}
       </ol>

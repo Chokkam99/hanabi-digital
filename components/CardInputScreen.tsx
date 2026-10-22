@@ -13,7 +13,9 @@ interface CardInputScreenProps {
 }
 
 export default function CardInputScreen({ gameState, onComplete }: CardInputScreenProps) {
-  const otherPlayers = gameState.players.filter(p => !p.isMe);
+  // Same order as the table: everyone after me, in turn order
+  const meIndex = gameState.players.findIndex(p => p.isMe);
+  const otherPlayers = [...gameState.players.slice(meIndex + 1), ...gameState.players.slice(0, meIndex)];
   const totalCards = getHandSize(gameState.players.length);
 
   // State for tracking all players' cards locally
@@ -67,12 +69,13 @@ export default function CardInputScreen({ gameState, onComplete }: CardInputScre
         number,
       };
       newMap.set(currentPlayerId, [...playerCards, newCard]);
+    }
 
-      // Move on to the next player once this hand is full
-      if (playerCards.length + 1 >= totalCards) {
-        const next = otherPlayers.find(p => (newMap.get(p.id) || []).length < totalCards);
-        if (next) setCurrentPlayerId(next.id);
-      }
+    // Once this hand is full (after adding or after fixing a card in it), move on to
+    // the next hand that still needs cards
+    if ((newMap.get(currentPlayerId) || []).length >= totalCards) {
+      const next = otherPlayers.find(p => (newMap.get(p.id) || []).length < totalCards);
+      if (next) setCurrentPlayerId(next.id);
     }
 
     setAllPlayersCards(newMap);

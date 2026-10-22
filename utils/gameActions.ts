@@ -161,16 +161,23 @@ function removeAndDraw(
       position: idx,
     }));
   } else {
-    // For other players, mark the drawn card for input (the user can see it)
     newHand = (player.hand as Card[]).filter((_, idx) => idx !== position);
-    if (canDraw) {
+    // Ask for the drawn card right away (the user can see it), except in Focus mode,
+    // which skips card entry; it waits as an empty slot at the left of the hand instead
+    if (canDraw && !gameState.settings.focusMode) {
       pendingCardInput = { playerId: player.id, position: 0 };
     }
   }
 
+  const counters: Partial<Player> = player.isMe
+    ? {}
+    : canDraw
+    ? { cardsToEnter: (player.cardsToEnter ?? 0) + 1 }
+    : { missedDraws: (player.missedDraws ?? 0) + 1 };
+
   return {
     players: gameState.players.map(p =>
-      p.id === player.id ? { ...p, hand: newHand } : p
+      p.id === player.id ? { ...p, hand: newHand, ...counters } : p
     ),
     deckCount: canDraw ? gameState.deckCount - 1 : gameState.deckCount,
     drewLastCard: canDraw && gameState.deckCount === 1,
@@ -199,7 +206,9 @@ export function playCard(
 
   const newStrikeTokens = isSuccess ? gameState.strikeTokens : Math.min(gameState.strikeTokens + 1, MAX_STRIKES);
   const newScore = Object.values(newFireworks).reduce((sum, value) => sum + value, 0);
-  const isGameOver = !gameState.settings.focusMode && (newStrikeTokens === MAX_STRIKES || newScore === MAX_SCORE);
+  // Only the play that adds the third strike ends the game (strikes can already be at 3 after Focus mode)
+  const isGameOver =
+    !gameState.settings.focusMode && ((!isSuccess && newStrikeTokens === MAX_STRIKES) || newScore === MAX_SCORE);
   const { players, deckCount, drewLastCard, pendingCardInput } = removeAndDraw(gameState, player, position, isGameOver);
 
   return advanceFinalRound({

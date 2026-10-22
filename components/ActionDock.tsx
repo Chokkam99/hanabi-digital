@@ -21,8 +21,8 @@ interface ActionDockProps {
 
 const selectedRing = 'ring-2 ring-ink ring-offset-2 ring-offset-lacquer-2';
 
-function slotList(positions: number[]): string {
-  const slots = [...positions].sort((a, b) => a - b).map(p => p + 1);
+function slotList(positions: number[], offset: number): string {
+  const slots = [...positions].sort((a, b) => a - b).map(p => offset + p + 1);
   return `${slots.length === 1 ? 'slot' : 'slots'} ${slots.join(', ')}`;
 }
 
@@ -87,7 +87,7 @@ export default function ActionDock({
           )}
           <p className="text-sm">
             <span className="font-semibold">{mode === 'clue' ? (player.isMe ? 'Clue you received' : `Clue for ${player.name}`) : who}</span>{' '}
-            <span className="text-ink-2">{slotList(selectedPositions)}</span>
+            <span className="text-ink-2">{slotList(selectedPositions, player.isMe ? 0 : player.cardsToEnter ?? 0)}</span>
           </p>
           <button
             onClick={onClear}

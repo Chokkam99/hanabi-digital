@@ -41,6 +41,15 @@ export default function GameView({ gameState, onUpdateGame, onUndo, canUndo, onN
   const [showMenu, setShowMenu] = useState(false);
   const [confirmingNewGame, setConfirmingNewGame] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // A drawn card the user chose to enter later, opened from its slot
+  const [enteringDrawnFor, setEnteringDrawnFor] = useState<string | null>(null);
+  // After the game ends, the table can be reviewed (read-only) with the result sheet closed
+  const [reviewing, setReviewing] = useState(false);
+
+  // The table opens at the top (card entry may have left the page scrolled down)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const { players, settings } = gameState;
   const handSize = getHandSize(players.length);
@@ -78,6 +87,7 @@ export default function GameView({ gameState, onUpdateGame, onUndo, canUndo, onN
     if (gameState.isGameOver === wasOver.current) return;
     wasOver.current = gameState.isGameOver;
     setJustEnded(gameState.isGameOver);
+    setReviewing(false);
   }, [gameState.isGameOver]);
 
   const run = (action: () => GameState, saveToHistory = true) => {
@@ -90,6 +100,8 @@ export default function GameView({ gameState, onUpdateGame, onUndo, canUndo, onN
   };
 
   const toggleCard = (playerId: string, cardId: string) => {
+    // A finished game is read-only
+    if (gameState.isGameOver) return;
     setNotice(null);
     setSelection(prev => {
       // Selecting in another hand starts a fresh selection
@@ -171,6 +183,20 @@ export default function GameView({ gameState, onUpdateGame, onUndo, canUndo, onN
       />
 
       <main className={`mx-auto max-w-xl space-y-7 px-4 pt-5 ${activeSelection ? 'pb-72' : 'pb-16'}`}>
+        {gameState.isGameOver && (
+          <div role="status" className="flex items-center gap-3 rounded-xl border border-ink-3 bg-lacquer px-4 py-3">
+            <p className="flex-1 text-sm">
+              <span className="font-semibold">Game over.</span>{' '}
+              <span className="text-ink-2">
+                {gameState.score} of {MAX_SCORE}. The table is read-only; undo to keep playing.
+              </span>
+            </p>
+            <Button className="min-h-9 shrink-0 px-3" onClick={() => setReviewing(false)}>
+              Result
+            </Button>
+          </div>
+        )}
+
         {gameState.lastRoundStarted && !gameState.isGameOver && (
           <div role="status" className="flex items-center gap-3 rounded-xl border border-ink-3 bg-lacquer px-4 py-3">
             <Icon name="deck" size={18} className="shrink-0 text-ink" />
@@ -214,12 +240,13 @@ export default function GameView({ gameState, onUpdateGame, onUndo, canUndo, onN
             selectedCardIds={selection?.playerId === player.id ? selection.cardIds : []}
             onToggleCard={cardId => toggleCard(player.id, cardId)}
             onEditCards={() => setEditingPlayerId(player.id)}
+            onEnterDrawnCard={() => setEnteringDrawnFor(player.id)}
           />
         ))}
 
         <DiscardPileDisplay discardPile={gameState.discardPile} />
 
-        {!activeSelection && (
+        {!activeSelection && !gameState.isGameOver && (
           <p className="text-center text-[13px] text-ink-3">
             Tap cards to give or record a clue, play, discard or move them.
           </p>
@@ -257,13 +284,32 @@ export default function GameView({ gameState, onUpdateGame, onUndo, canUndo, onN
         />
       )}
 
-      {/* A drawn card for another player (skipped in Focus Mode) */}
-      {gameState.pendingCardInput && !settings.focusMode && (
+      {/* A card another player just drew (Focus mode doesn't ask) */}
+      {gameState.pendingCardInput && !gameState.isGameOver && (
         <NewCardModal
           gameState={gameState}
+          playerId={gameState.pendingCardInput.playerId}
           onUpdateGame={onUpdateGame}
-          onUndo={canUndo ? onUndo : undefined}
-          onSkip={() => onUpdateGame({ ...gameState, pendingCardInput: undefined }, false)}
+          secondary={
+            canUndo
+              ? { label: 'Undo', icon: 'undo', onClick: onUndo }
+              : // Undo history isn't saved, so after a reload offer a way out instead;
+                // the card then waits as a "New card" slot at the left of their hand
+                { label: 'Add later', onClick: () => onUpdateGame({ ...gameState, pendingCardInput: undefined }, false) }
+          }
+        />
+      )}
+
+      {/* A drawn card entered later, from its "New card" slot */}
+      {enteringDrawnFor && !gameState.pendingCardInput && (
+        <NewCardModal
+          gameState={gameState}
+          playerId={enteringDrawnFor}
+          onUpdateGame={state => {
+            onUpdateGame(state);
+            setEnteringDrawnFor(null);
+          }}
+          secondary={{ label: 'Cancel', onClick: () => setEnteringDrawnFor(null) }}
         />
       )}
 
@@ -297,7 +343,7 @@ export default function GameView({ gameState, onUpdateGame, onUndo, canUndo, onN
             />
             <SwitchRow
               label="Apply deductions to my cards"
-              description="Uses the options you've ruled out under Deductions."
+              description="Rules out cards whose every copy is visible elsewhere, plus anything you rule out under Deductions."
               checked={settings.showDeductions}
               onChange={v => updateSetting('showDeductions', v)}
             />
@@ -331,7 +377,7 @@ export default function GameView({ gameState, onUpdateGame, onUndo, canUndo, onN
         </Sheet>
       )}
 
-      {gameState.isGameOver && (
+      {gameState.isGameOver && !reviewing && (
         <Sheet
           title={lostToStrikes ? 'The fuse burned out' : perfect ? 'A perfect show' : 'The show is over'}
           description={
@@ -341,7 +387,7 @@ export default function GameView({ gameState, onUpdateGame, onUndo, canUndo, onN
               ? 'Every firework, all the way to 5.'
               : 'The deck ran out and everyone took their last turn.'
           }
-          onClose={() => onUpdateGame({ ...gameState, isGameOver: false }, false)}
+          onClose={() => setReviewing(true)}
           footer={
             <>
               {canUndo && (
@@ -394,7 +440,7 @@ export default function GameView({ gameState, onUpdateGame, onUndo, canUndo, onN
               <span className="text-sm font-medium text-ink-2">of {MAX_SCORE}</span>
             </p>
             <button
-              onClick={() => onUpdateGame({ ...gameState, isGameOver: false }, false)}
+              onClick={() => setReviewing(true)}
               className="mt-4 text-sm font-semibold text-ink-2 underline underline-offset-4 hover:text-ink"
             >
               Review the table

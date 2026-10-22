@@ -46,6 +46,8 @@ export default function FireworksRail({ fireworks, score }: FireworksRailProps) 
                   color={color}
                   number={level as CardNumber}
                   className={justPlayed === color ? 'animate-flip-in' : ''}
+                  // Once played, a remount (say, after Undo) must not replay it
+                  onAnimationEnd={() => setJustPlayed(null)}
                 />
               ) : (
                 <EmptySlot color={color} />

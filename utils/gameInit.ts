@@ -49,7 +49,7 @@ export function initializeGame(setup: GameSetup): GameState {
     settings: {
       showSafeToPlay: false,
       showSafeToDiscard: false,
-      showDeductions: false,
+      showDeductions: true,
       focusMode: false,
     },
     isGameOver: false,

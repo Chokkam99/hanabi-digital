@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { GameState, Color, CardNumber, CardPossibilities } from '@/types/game';
 import { playCard, discardCard } from '@/utils/gameActions';
+import { getMyKnowledge } from '@/utils/inference';
 import CardPicker from './CardPicker';
 import { CardFace, KnowledgeCard } from './Card';
 import Sheet from './ui/Sheet';
@@ -31,8 +32,8 @@ export default function RevealCardModal({
 }: RevealCardModalProps) {
   const player = gameState.players.find(p => p.id === playerId);
 
-  // Pre-fill whatever clues have already pinned down about my card
-  const myCard = player?.isMe ? (player.hand as CardPossibilities[])[position] : undefined;
+  // Pre-fill whatever is already pinned down about my card (clues, plus deductions when they're on)
+  const myCard: CardPossibilities | undefined = player?.isMe ? getMyKnowledge(gameState).hand[position] : undefined;
   const [selectedColor, setSelectedColor] = useState<Color | null>(
     myCard?.possibleColors.size === 1 ? [...myCard.possibleColors][0] : null
   );

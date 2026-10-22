@@ -59,6 +59,12 @@ export interface Player {
   isMe: boolean;
   hand: Card[] | CardPossibilities[]; // Card[] for others, CardPossibilities[] for me
   cluesReceived: Clue[];
+  // Other players only. Cards they drew that haven't been entered yet; they sit at the left
+  // of the hand, so the entered cards' slot numbers start after them.
+  cardsToEnter?: number;
+  // Other players only. Plays and discards that drew nothing (deck out or game over),
+  // so the hand is legitimately smaller than the starting hand size.
+  missedDraws?: number;
 }
 
 // Fireworks state (each color stack)
